@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { SmartReliefProvider, useSmartRelief } from "./context/SmartReliefContext";
-import { Navbar } from "./components/layout/Navbar";
-import { Sidebar } from "./components/layout/Sidebar";
+import { PageLayout } from "./components/layout/PageLayout";
+import { MobileLayout } from "./components/layout/MobileLayout";
 import { SuperAdminPortal } from "./components/roles/superadmin/SuperAdminPortal";
 import { AdminPortal } from "./components/roles/admin/AdminPortal";
 import { ResponderPortal } from "./components/roles/responder/ResponderPortal";
 import { CitizenPortal } from "./components/roles/citizen/CitizenPortal";
 import { AIDecisionSupportModal } from "./components/ai/AIDecisionSupportModal";
+import { GlobalNotifications } from "./components/common/GlobalNotifications";
 
 function MainContent() {
   const { currentRole } = useSmartRelief();
@@ -20,8 +21,6 @@ function MainContent() {
   useEffect(() => {
     switch (currentRole) {
       case "SUPER_ADMIN":
-        setActiveTab("overview");
-        break;
       case "ADMIN":
         setActiveTab("dashboard");
         break;
@@ -36,40 +35,64 @@ function MainContent() {
     }
   }, [currentRole]);
 
+  // Determine page title based on active tab and role
+  let title = "Dashboard";
+  if (currentRole === "CITIZEN") title = "Emergency Services";
+  else if (currentRole === "RESPONDER") title = "Field Command";
+  else if (activeTab === "incidents") title = "Incident Management";
+  else if (activeTab === "requests") title = "Assistance Requests";
+  else if (activeTab === "resources") title = "Resource Inventory";
+  else if (activeTab === "map") title = "GIS Operations Map";
+  else if (activeTab === "analytics") title = "Analytics & Reports";
+
+  const isMobileRole = currentRole === "RESPONDER" || currentRole === "VOLUNTEER" || currentRole === "CITIZEN";
+
+  const renderContent = () => (
+    <>
+      {currentRole === "SUPER_ADMIN" && (
+        ['overview', 'users', 'roles', 'lgus', 'audit', 'settings'].includes(activeTab)
+          ? <SuperAdminPortal activeTab={activeTab} />
+          : <AdminPortal activeTab={activeTab} onOpenAiModal={() => setIsAiModalOpen(true)} />
+      )}
+      {currentRole === "ADMIN" && <AdminPortal activeTab={activeTab} onOpenAiModal={() => setIsAiModalOpen(true)} />}
+      {(currentRole === "RESPONDER" || currentRole === "VOLUNTEER") && <ResponderPortal activeTab={activeTab} />}
+      {currentRole === "CITIZEN" && <CitizenPortal activeTab={activeTab} onSelectTab={tabId => setActiveTab(tabId)} />}
+    </>
+  );
+
   return (
-    <div className="min-h-screen bg-[#F1F5F9] text-slate-800 font-sans selection:bg-blue-600 selection:text-white flex flex-col">
-      
-      {/* Top Navbar */}
-      <Navbar
-        onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
-        onOpenAiModal={() => setIsAiModalOpen(true)}
-      />
-
-      <div className="flex-1 flex max-w-[1600px] w-full mx-auto">
-        
-        {/* Left Sidebar */}
-        <Sidebar
+    <>
+      {isMobileRole ? (
+        <MobileLayout
           activeTab={activeTab}
-          onSelectTab={tabId => setActiveTab(tabId)}
-          isOpen={isSidebarOpen}
-          onClose={() => setIsSidebarOpen(false)}
-        />
-
-        {/* Center Main Stage Content */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 min-w-0 overflow-y-auto">
-          {currentRole === "SUPER_ADMIN" && <SuperAdminPortal activeTab={activeTab} />}
-          {currentRole === "ADMIN" && <AdminPortal activeTab={activeTab} onOpenAiModal={() => setIsAiModalOpen(true)} />}
-          {(currentRole === "RESPONDER" || currentRole === "VOLUNTEER") && <ResponderPortal activeTab={activeTab} />}
-          {currentRole === "CITIZEN" && <CitizenPortal activeTab={activeTab} onSelectTab={tabId => setActiveTab(tabId)} />}
-        </main>
-      </div>
+          onSelectTab={(tabId) => setActiveTab(tabId)}
+          onOpenAiModal={() => setIsAiModalOpen(true)}
+        >
+          {renderContent()}
+        </MobileLayout>
+      ) : (
+        <PageLayout
+          title={title}
+          activeTab={activeTab}
+          onSelectTab={(tabId) => setActiveTab(tabId)}
+          isSidebarOpen={isSidebarOpen}
+          onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+          onCloseSidebar={() => setIsSidebarOpen(false)}
+          onOpenAiModal={() => setIsAiModalOpen(true)}
+          contentClassName={activeTab === 'map' ? "h-full w-full" : "max-w-6xl mx-auto w-full"}
+        >
+          {renderContent()}
+        </PageLayout>
+      )}
 
       {/* Global AI Decision Support Modal */}
       <AIDecisionSupportModal
         isOpen={isAiModalOpen}
         onClose={() => setIsAiModalOpen(false)}
       />
-    </div>
+
+      <GlobalNotifications />
+    </>
   );
 }
 

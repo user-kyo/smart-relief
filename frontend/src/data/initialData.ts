@@ -26,14 +26,14 @@ export const initialUsers: SystemUser[] = [
   },
   {
     id: "usr-002",
-    name: "Capt. Elena Santos",
+    name: "Kapt. Elena Santos",
     email: "elena.santos@manila.gov.ph",
     phone: "+63 918 555 0202",
     role: "ADMIN",
     status: "ACTIVE",
     lguId: "lgu-101",
-    lguName: "Manila DRRM Operations Center",
-    barangay: "Barangay 659 Central",
+    lguName: "San Pablo City DRRM Operations Center",
+    barangay: "Barangay San Lucas 1",
     lastActive: "Just now",
     avatarUrl: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80"
   },
@@ -52,7 +52,7 @@ export const initialUsers: SystemUser[] = [
   },
   {
     id: "usr-004",
-    name: "Maria Cruz",
+    name: "Ana Reyes",
     email: "maria.cruz@gmail.com",
     phone: "+63 920 555 0404",
     role: "CITIZEN",
@@ -83,11 +83,11 @@ export const initialIncidents: Incident[] = [
     status: "RESPONDING",
     locationName: "Riverview Subdivision, Barangay San Jose",
     barangay: "Barangay San Jose",
-    lguName: "Manila DRRM Operations Center",
-    lat: 14.5995,
-    lng: 120.9842,
+    lguName: "San Pablo City DRRM Operations Center",
+    lat: 14.0765, // Near Sampaloc Lake
+    lng: 121.3258,
     affectedCount: 28,
-    reportedBy: "Maria Cruz (Resident)",
+    reportedBy: "Ana Reyes (Resident)",
     reportedByPhone: "+63 920 555 0404",
     reportedAt: "2026-08-11T06:15:00Z",
     updatedAt: "2026-08-11T06:45:00Z",
@@ -95,10 +95,10 @@ export const initialIncidents: Incident[] = [
     assignedResponderNames: ["Alpha Swift Water Rescue Team"],
     relatedRequestIds: ["REQ-8801", "REQ-8802"],
     timeline: [
-      { timestamp: "06:15 AM", action: "Citizen report submitted with photo evidence.", performedBy: "Maria Cruz" },
-      { timestamp: "06:22 AM", action: "Incident verified by LGU-DRRM Command.", performedBy: "Capt. Elena Santos" },
+      { timestamp: "06:15 AM", action: "Citizen report submitted with photo evidence.", performedBy: "Ana Reyes" },
+      { timestamp: "06:22 AM", action: "Incident verified by LGU-DRRM Command.", performedBy: "Kapt. Elena Santos" },
       { timestamp: "06:30 AM", action: "AI recommended immediate dispatch of Rescue Alpha Team.", performedBy: "SmartRelief AI Engine" },
-      { timestamp: "06:35 AM", action: "Assigned Alpha Swift Water Rescue Team (2 inflatable boats).", performedBy: "Capt. Elena Santos" },
+      { timestamp: "06:35 AM", action: "Assigned Alpha Swift Water Rescue Team (2 inflatable boats).", performedBy: "Kapt. Elena Santos" },
       { timestamp: "06:45 AM", action: "Rescue Alpha Team confirmed en route.", performedBy: "Sgt. Mark Villareal" }
     ]
   },
@@ -109,11 +109,11 @@ export const initialIncidents: Incident[] = [
     type: "STRUCTURE_COLLAPSE",
     severity: "HIGH",
     status: "VERIFIED",
-    locationName: "Public Market Ave, Barangay Central",
-    barangay: "Barangay Central",
-    lguName: "Manila DRRM Operations Center",
-    lat: 14.6050,
-    lng: 120.9890,
+    locationName: "Public Market Ave, Barangay 1-A",
+    barangay: "Barangay 1-A",
+    lguName: "San Pablo City DRRM Operations Center",
+    lat: 14.0720, // San Pablo City Proper Market
+    lng: 121.3242,
     affectedCount: 12,
     reportedBy: "Barangay Tanod Officer",
     reportedAt: "2026-08-11T06:00:00Z",
@@ -121,8 +121,8 @@ export const initialIncidents: Incident[] = [
     assignedResponderIds: ["resp-002"],
     assignedResponderNames: ["Bravo Fire & Heavy Rescue"],
     timeline: [
-      { timestamp: "06:00 AM", action: "Incident reported by Barangay Patrol.", performedBy: "Officer Perez" },
-      { timestamp: "06:20 AM", action: "Severity set to HIGH due to power line risk.", performedBy: "Capt. Elena Santos" }
+      { timestamp: "06:00 AM", action: "Incident reported by Barangay Patrol.", performedBy: "Officer Benitez" },
+      { timestamp: "06:20 AM", action: "Severity set to HIGH due to power line risk.", performedBy: "Kapt. Elena Santos" }
     ]
   },
   {
@@ -133,10 +133,10 @@ export const initialIncidents: Incident[] = [
     severity: "MEDIUM",
     status: "ASSIGNED",
     locationName: "Central Gym Evacuation Center",
-    barangay: "Barangay 659",
-    lguName: "Manila DRRM Operations Center",
-    lat: 14.5900,
-    lng: 120.9780,
+    barangay: "Barangay San Lucas 1",
+    lguName: "San Pablo City DRRM Operations Center",
+    lat: 14.0610, // Near SM City San Pablo
+    lng: 121.3195,
     affectedCount: 6,
     reportedBy: "Center Manager",
     reportedAt: "2026-08-11T05:30:00Z",
@@ -145,7 +145,7 @@ export const initialIncidents: Incident[] = [
     assignedResponderNames: ["Charlie Paramedic Unit"],
     timeline: [
       { timestamp: "05:30 AM", action: "Evacuation Center medical alert raised.", performedBy: "Volunteer Supervisor" },
-      { timestamp: "06:10 AM", action: "Assigned Paramedic Unit 3 with portable oxygen concentrators.", performedBy: "Capt. Elena Santos" }
+      { timestamp: "06:10 AM", action: "Assigned Paramedic Unit 3 with portable oxygen concentrators.", performedBy: "Kapt. Elena Santos" }
     ]
   },
   {
@@ -156,17 +156,17 @@ export const initialIncidents: Incident[] = [
     severity: "HIGH",
     status: "REPORTED",
     locationName: "Hillside Road Kilometer 14",
-    barangay: "Barangay Upper Hill",
-    lguName: "Manila DRRM Operations Center",
-    lat: 14.6150,
-    lng: 121.0020,
+    barangay: "Barangay San Vicente",
+    lguName: "San Pablo City DRRM Operations Center",
+    lat: 14.0850, // Towards Mount Makiling / Hillside
+    lng: 121.3380,
     affectedCount: 45,
     reportedBy: "LGU Highway Inspector",
     reportedAt: "2026-08-11T06:40:00Z",
     updatedAt: "2026-08-11T06:40:00Z",
     assignedResponderIds: [],
     timeline: [
-      { timestamp: "06:40 AM", action: "Inspector logged pre-disaster landslide warning indicator.", performedBy: "Inspector Reyes" }
+      { timestamp: "06:40 AM", action: "Inspector logged pre-disaster landslide warning indicator.", performedBy: "Inspector Santos" }
     ]
   }
 ];
@@ -174,14 +174,14 @@ export const initialIncidents: Incident[] = [
 export const initialAssistanceRequests: AssistanceRequest[] = [
   {
     id: "REQ-8801",
-    citizenName: "Maria Cruz",
+    citizenName: "Ana Reyes",
     citizenPhone: "+63 920 555 0404",
     requestType: "RESCUE",
     severity: "CRITICAL",
     locationName: "House #42, Riverview Subdivision, Barangay San Jose",
     barangay: "Barangay San Jose",
-    lat: 14.5995,
-    lng: 120.9842,
+    lat: 14.0768, // Request near Incident 1 (Sampaloc Lake)
+    lng: 121.3260,
     peopleCount: 5,
     specialNeeds: "1 Senior Citizen with mobility impairment, 1 Infant (8 months)",
     description: "Flood water reached chest level on ground floor. We are on rooftop. Need immediate boat rescue.",
@@ -200,14 +200,14 @@ export const initialAssistanceRequests: AssistanceRequest[] = [
   },
   {
     id: "REQ-8802",
-    citizenName: "Bernardo Santos",
+    citizenName: "Carlos Garcia",
     citizenPhone: "+63 915 888 2211",
     requestType: "FOOD_WATER",
     severity: "HIGH",
     locationName: "Barangay Hall Annex, Barangay San Jose",
     barangay: "Barangay San Jose",
-    lat: 14.5980,
-    lng: 120.9830,
+    lat: 14.0755,
+    lng: 121.3250,
     peopleCount: 18,
     specialNeeds: "Clean drinking water exhausted",
     description: "18 evacuees stranded in barangay annex hall. Water supplies ran out 2 hours ago.",
@@ -221,14 +221,14 @@ export const initialAssistanceRequests: AssistanceRequest[] = [
   },
   {
     id: "REQ-8803",
-    citizenName: "Grace Tan",
+    citizenName: "Maria Fernandez",
     citizenPhone: "+63 922 999 1100",
     requestType: "MEDICAL",
     severity: "HIGH",
-    locationName: "Corner 4th & Laurel St, Barangay 659",
-    barangay: "Barangay 659",
-    lat: 14.5920,
-    lng: 120.9760,
+    locationName: "Corner 4th & Laurel St, Barangay San Lucas 1",
+    barangay: "Barangay San Lucas 1",
+    lat: 14.0620, // Near SM San Pablo (Medical Request)
+    lng: 121.3190,
     peopleCount: 2,
     specialNeeds: "Laceration injury requiring sutures",
     description: "Resident cut leg on floating debris while wading through floodwater.",
@@ -256,7 +256,7 @@ export const initialResources: ResourceItem[] = [
     distributedQuantity: 230,
     unit: "packs",
     location: "Central LGU Logistics Warehouse",
-    lguName: "Manila DRRM Operations Center",
+    lguName: "San Pablo City DRRM Operations Center",
     minThreshold: 300,
     stockStatus: "NORMAL",
     expirationDate: "2027-02-15",
@@ -272,7 +272,7 @@ export const initialResources: ResourceItem[] = [
     distributedQuantity: 400,
     unit: "gallons",
     location: "Central LGU Logistics Warehouse",
-    lguName: "Manila DRRM Operations Center",
+    lguName: "San Pablo City DRRM Operations Center",
     minThreshold: 200,
     stockStatus: "LOW_STOCK",
     lastUpdated: "5 mins ago"
@@ -287,7 +287,7 @@ export const initialResources: ResourceItem[] = [
     distributedQuantity: 2,
     unit: "units",
     location: "Rescue Equipment Depot B",
-    lguName: "Manila DRRM Operations Center",
+    lguName: "San Pablo City DRRM Operations Center",
     minThreshold: 3,
     stockStatus: "LOW_STOCK",
     lastUpdated: "Just now"
@@ -302,7 +302,7 @@ export const initialResources: ResourceItem[] = [
     distributedQuantity: 60,
     unit: "kits",
     location: "Health Command Center",
-    lguName: "Manila DRRM Operations Center",
+    lguName: "San Pablo City DRRM Operations Center",
     minThreshold: 80,
     stockStatus: "NORMAL",
     expirationDate: "2026-12-01",
@@ -318,7 +318,7 @@ export const initialResources: ResourceItem[] = [
     distributedQuantity: 4,
     unit: "units",
     location: "Central LGU Logistics Warehouse",
-    lguName: "Manila DRRM Operations Center",
+    lguName: "San Pablo City DRRM Operations Center",
     minThreshold: 5,
     stockStatus: "LOW_STOCK",
     lastUpdated: "1 hour ago"
@@ -333,7 +333,7 @@ export const initialResources: ResourceItem[] = [
     distributedQuantity: 150,
     unit: "kits",
     location: "Central LGU Logistics Warehouse",
-    lguName: "Manila DRRM Operations Center",
+    lguName: "San Pablo City DRRM Operations Center",
     minThreshold: 200,
     stockStatus: "NORMAL",
     lastUpdated: "40 mins ago"
@@ -344,11 +344,11 @@ export const initialEvacuationCenters: EvacuationCenter[] = [
   {
     id: "EC-001",
     name: "Central Gymnasium Evacuation Facility",
-    address: "Rizal Ave corner 5th St",
-    barangay: "Barangay 659 Central",
-    lguName: "Manila DRRM Operations Center",
-    lat: 14.5910,
-    lng: 120.9785,
+    address: "Mabini Ave corner 5th St",
+    barangay: "Barangay San Lucas 1",
+    lguName: "San Pablo City DRRM Operations Center",
+    lat: 14.0705, // Central San Pablo
+    lng: 121.3230,
     capacity: 500,
     currentOccupants: 440,
     facilities: {
@@ -360,7 +360,7 @@ export const initialEvacuationCenters: EvacuationCenter[] = [
       waterPurifier: true
     },
     status: "OPEN",
-    contactPerson: "Capt. Ramon Reyes",
+    contactPerson: "Kapt. Ricardo Dalisay",
     contactPhone: "+63 917 111 8899",
     updatedAt: "10 mins ago"
   },
@@ -369,9 +369,9 @@ export const initialEvacuationCenters: EvacuationCenter[] = [
     name: "Barangay San Jose High School Evacuation Shelter",
     address: "School Road, Barangay San Jose",
     barangay: "Barangay San Jose",
-    lguName: "Manila DRRM Operations Center",
-    lat: 14.6010,
-    lng: 120.9855,
+    lguName: "San Pablo City DRRM Operations Center",
+    lat: 14.0785, 
+    lng: 121.3280,
     capacity: 350,
     currentOccupants: 190,
     facilities: {
@@ -383,7 +383,7 @@ export const initialEvacuationCenters: EvacuationCenter[] = [
       waterPurifier: false
     },
     status: "OPEN",
-    contactPerson: "Principal Lorna Garcia",
+    contactPerson: "Principal Leonora Castro",
     contactPhone: "+63 918 222 7766",
     updatedAt: "25 mins ago"
   },
@@ -391,10 +391,10 @@ export const initialEvacuationCenters: EvacuationCenter[] = [
     id: "EC-003",
     name: "East Multi-Purpose Covered Court",
     address: "East Boulevard near Park",
-    barangay: "Barangay Eastside",
-    lguName: "Manila DRRM Operations Center",
-    lat: 14.5820,
-    lng: 120.9910,
+    barangay: "Barangay San Diego",
+    lguName: "San Pablo City DRRM Operations Center",
+    lat: 14.0537, // Lake Bunot area
+    lng: 121.3340,
     capacity: 300,
     currentOccupants: 300,
     facilities: {
@@ -406,7 +406,7 @@ export const initialEvacuationCenters: EvacuationCenter[] = [
       waterPurifier: false
     },
     status: "FULL",
-    contactPerson: "Kagawad Benjie Torres",
+    contactPerson: "Kagawad Miguel Torres",
     contactPhone: "+63 919 333 6655",
     updatedAt: "5 mins ago"
   },
@@ -414,10 +414,10 @@ export const initialEvacuationCenters: EvacuationCenter[] = [
     id: "EC-004",
     name: "Metro University Auditorium Shelter",
     address: "University Belt Campus B",
-    barangay: "Barangay Central",
-    lguName: "Manila DRRM Operations Center",
-    lat: 14.6080,
-    lng: 120.9870,
+    barangay: "Barangay 1-A",
+    lguName: "San Pablo City DRRM Operations Center",
+    lat: 14.0810, 
+    lng: 121.3200,
     capacity: 800,
     currentOccupants: 120,
     facilities: {
@@ -429,7 +429,7 @@ export const initialEvacuationCenters: EvacuationCenter[] = [
       waterPurifier: true
     },
     status: "OPEN",
-    contactPerson: "Dr. Angela Castro",
+    contactPerson: "Dr. Patricia Perez",
     contactPhone: "+63 920 444 5544",
     updatedAt: "1 hour ago"
   }
@@ -446,8 +446,8 @@ export const initialResponders: Responder[] = [
     currentAssignmentId: "INC-2026-089",
     currentAssignmentTitle: "Trapped Rooftop Residents - Flood Sector 4",
     locationName: "En route to Riverview Subdivision",
-    lat: 14.5980,
-    lng: 120.9820,
+    lat: 14.0690, 
+    lng: 121.3220,
     phone: "+63 919 555 0303",
     teamSize: 6,
     skills: ["Water Navigation", "Trauma Care", "Night Search & Rescue"],
@@ -462,8 +462,8 @@ export const initialResponders: Responder[] = [
     status: "AVAILABLE",
     lguName: "Manila Fire & DRRM Station 1",
     locationName: "Fire Station Central Base",
-    lat: 14.6030,
-    lng: 120.9880,
+    lat: 14.0715,
+    lng: 121.3245,
     phone: "+63 917 444 9988",
     teamSize: 8,
     skills: ["Structural Collapse Rescue", "Heavy Machinery Operation", "Power Line Hazard Clearance"],
@@ -480,8 +480,8 @@ export const initialResponders: Responder[] = [
     currentAssignmentId: "INC-2026-091",
     currentAssignmentTitle: "Evacuation Center Medical Triage",
     locationName: "Central Gymnasium Evacuation Facility",
-    lat: 14.5910,
-    lng: 120.9785,
+    lat: 14.0615,
+    lng: 121.3198,
     phone: "+63 918 333 7711",
     teamSize: 4,
     skills: ["Advanced Life Support", "Triage Management", "Oxygen Administration"],
@@ -496,8 +496,8 @@ export const initialResponders: Responder[] = [
     status: "AVAILABLE",
     lguName: "Red Cross Chapter Youth Volunteers",
     locationName: "Central Warehouse Depot",
-    lat: 14.5950,
-    lng: 120.9800,
+    lat: 14.0680,
+    lng: 121.3200,
     phone: "+63 921 555 0505",
     teamSize: 12,
     skills: ["Food Distribution", "Crowd Control", "Inventory Tracking"],
@@ -509,36 +509,36 @@ export const initialResponders: Responder[] = [
 export const initialLGUs: LGUOrganization[] = [
   {
     id: "lgu-101",
-    name: "Manila DRRM Operations Center",
+    name: "San Pablo City DRRM Operations Center",
     region: "National Capital Region (NCR)",
     cityMunicipality: "City of Manila",
     barangayCount: 897,
     registeredRespondersCount: 142,
-    drrmHead: "Atty. Carlos Gonzaga",
+    drrmHead: "Atty. Marcelo H. del Pilar",
     contactEmail: "drrm@manila.gov.ph",
     contactPhone: "+63 2 8527 5128",
     status: "ACTIVE"
   },
   {
     id: "lgu-102",
-    name: "Quezon City Disaster Risk Reduction Command",
+    name: "Laguna Provincial DRRM Command",
     region: "National Capital Region (NCR)",
     cityMunicipality: "Quezon City",
     barangayCount: 142,
     registeredRespondersCount: 310,
-    drrmHead: "Engr. Michael Santos",
+    drrmHead: "Engr. Graciano Lopez Jaena",
     contactEmail: "qc.drrmo@quezoncity.gov.ph",
     contactPhone: "+63 2 8928 4325",
     status: "ACTIVE"
   },
   {
     id: "lgu-103",
-    name: "Marikina Riverway Disaster Corps",
+    name: "Seven Lakes Disaster Corps",
     region: "National Capital Region (NCR)",
     cityMunicipality: "Marikina City",
     barangayCount: 16,
     registeredRespondersCount: 180,
-    drrmHead: "Capt. Ferdinand Cruz",
+    drrmHead: "Kapt. Emilio Jacinto",
     contactEmail: "rescue161@marikina.gov.ph",
     contactPhone: "+63 2 8646 2436",
     status: "ACTIVE"
@@ -561,7 +561,7 @@ export const initialLogs: SystemLog[] = [
     id: "log-1002",
     timestamp: "2026-08-11T06:35:00Z",
     userId: "usr-002",
-    userName: "Capt. Elena Santos",
+    userName: "Kapt. Elena Santos",
     userRole: "ADMIN",
     action: "ACCEPTED_AI_RECOMMENDATION",
     details: "Accepted AI Recommendation #REC-001: Dispatched Rescue Alpha Team to Sector 4 Flood.",
@@ -572,7 +572,7 @@ export const initialLogs: SystemLog[] = [
     id: "log-1003",
     timestamp: "2026-08-11T06:15:00Z",
     userId: "usr-004",
-    userName: "Maria Cruz",
+    userName: "Ana Reyes",
     userRole: "CITIZEN",
     action: "SUBMITTED_REQUEST",
     details: "Submitted emergency rescue request REQ-8801 for 5 trapped household members.",
@@ -720,7 +720,7 @@ export const initialAlerts: EmergencyAlert[] = [
   {
     id: "alt-001",
     title: "Typhoon Signal No. 3: Severe Rainfall & Storm Surge Advisory",
-    affectedArea: "Metropolitan Manila, Coastal Barangays, Pasig River Watershed",
+    affectedArea: "San Pablo City, Laguna Lakes, Mount Makiling Watershed",
     severity: "CRITICAL",
     instructions: "Residents in low-lying flood-prone areas are urged to execute pre-emptive evacuation immediately to designated evacuation centers. Avoid wading in floodwaters.",
     issuedAt: "2026-08-11T05:00:00Z",
@@ -730,7 +730,7 @@ export const initialAlerts: EmergencyAlert[] = [
   {
     id: "alt-002",
     title: "Road Blockage Advisory: Public Market Ave",
-    affectedArea: "Barangay Central Market Precinct",
+    affectedArea: "Barangay 1-A Market Precinct",
     severity: "WARNING",
     instructions: "Main market avenue closed due to collapsed structure wall and power cable hazard. Emergency response teams on site.",
     issuedAt: "2026-08-11T06:15:00Z",

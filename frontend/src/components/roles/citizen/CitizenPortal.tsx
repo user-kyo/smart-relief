@@ -16,7 +16,8 @@ import {
   Home,
   Users2,
   ArrowRight,
-  Radio
+  Radio,
+  CheckCircle
 } from "lucide-react";
 import { useSmartRelief } from "../../../context/SmartReliefContext";
 import { KPICard } from "../../common/KPICard";
@@ -36,7 +37,7 @@ export const CitizenPortal: React.FC<CitizenPortalProps> = ({ activeTab, onSelec
     evacuationCenters,
     alerts,
     createIncident,
-    submitAssistanceRequest
+    createAssistanceRequest
   } = useSmartRelief();
 
   // Citizen Report State
@@ -87,14 +88,14 @@ export const CitizenPortal: React.FC<CitizenPortalProps> = ({ activeTab, onSelec
 
   const handleRequestSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const newReq = submitAssistanceRequest({
+    const newReq = createAssistanceRequest({
       citizenName: "Citizen Reporter",
       citizenPhone: reqForm.contactPhone,
       requestType: reqForm.requestType,
       peopleCount: reqForm.peopleCount,
       specialNeeds: reqForm.specialNeeds,
       description: reqForm.description,
-      address: reqForm.address,
+      locationName: reqForm.address,
       barangay: "Barangay San Jose"
     });
     setCreatedReqId(newReq.id);
@@ -113,7 +114,7 @@ export const CitizenPortal: React.FC<CitizenPortalProps> = ({ activeTab, onSelec
         <div className="space-y-6 animate-in fade-in">
           
           {/* Emergency Hero Action Header */}
-          <div className="p-6 bg-gradient-to-r from-rose-700 via-slate-800 to-blue-800 border border-slate-700/60 rounded-2xl shadow-sm space-y-4">
+          <div className="p-6 bg-slate-900 border rounded-2xl shadow-sm space-y-4" style={{ borderColor: 'var(--color-border)' }}>
             <div className="flex items-center gap-2">
               <span className="p-2 rounded-xl bg-rose-600 text-white font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-xs">
                 <Siren className="w-4 h-4 animate-pulse" />
@@ -300,7 +301,7 @@ export const CitizenPortal: React.FC<CitizenPortalProps> = ({ activeTab, onSelec
 
                 <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs flex items-center justify-between">
                   <span className="text-slate-500 font-medium">Automatic GPS Coordinates:</span>
-                  <span className="font-mono text-emerald-700 font-bold">14.5995° N, 120.9842° E</span>
+                  <span className="font-mono text-emerald-700 font-bold">14.0720° N, 121.3250° E</span>
                 </div>
 
                 <div className="pt-4 flex justify-between">
@@ -556,9 +557,11 @@ export const CitizenPortal: React.FC<CitizenPortalProps> = ({ activeTab, onSelec
                     <span>→</span>
                     <span className={req.status !== "SUBMITTED" ? "text-emerald-700" : ""}>2. Verified by LGU</span>
                     <span>→</span>
-                    <span className={req.status === "ASSIGNED" || req.status === "COMPLETED" ? "text-blue-600" : ""}>3. Responder Unit En Route</span>
-                    <span>→</span>
-                    <span className={req.status === "COMPLETED" ? "text-emerald-700" : ""}>4. Resolved</span>
+                    <span className={req.status === "ASSIGNED" || req.status === "RESOLVED" ? "text-blue-600" : ""}>3. Responder Unit En Route</span>
+                  </div>
+                  <div className={`flex items-center gap-2 ${req.status === "RESOLVED" ? "text-emerald-700 font-bold" : "text-slate-400"}`}>
+                    <CheckCircle className="w-3.5 h-3.5" />
+                    <span className={req.status === "RESOLVED" ? "text-emerald-700" : ""}>4. Resolved</span>
                   </div>
                 </div>
               </div>

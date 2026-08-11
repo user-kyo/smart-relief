@@ -1,16 +1,12 @@
 import React, { useState } from "react";
 import {
-  ShieldAlert,
   Bell,
-  Search,
-  UserCheck,
-  RotateCcw,
   Sparkles,
-  ChevronDown,
+  Layers,
   AlertTriangle,
   Menu,
   Activity,
-  Layers,
+  RotateCcw,
   X
 } from "lucide-react";
 import { useSmartRelief } from "../../context/SmartReliefContext";
@@ -18,12 +14,13 @@ import { UserRole } from "../../types";
 import { StatusBadge } from "../common/StatusBadge";
 import { AnimatePresence, motion } from "motion/react";
 
-interface NavbarProps {
+interface HeaderProps {
+  title: string;
   onToggleSidebar?: () => void;
   onOpenAiModal?: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, onOpenAiModal }) => {
+export const Header: React.FC<HeaderProps> = ({ title, onToggleSidebar, onOpenAiModal }) => {
   const {
     currentRole,
     setRole,
@@ -35,13 +32,13 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, onOpenAiModal }
 
   const [showAlertsDropdown, setShowAlertsDropdown] = useState(false);
   const [showLogsDrawer, setShowLogsDrawer] = useState(false);
-  const [showRoleMenu, setShowRoleMenu] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   const activeAlerts = alerts.filter(a => a.active);
 
   const roles: { id: UserRole; label: string; desc: string }[] = [
     { id: "SUPER_ADMIN", label: "Super Admin", desc: "Platform administration & system governance" },
-    { id: "ADMIN", label: "Admin / LGU-DRRM", desc: "Operational incident command" },
+    { id: "ADMIN", label: "Admin", desc: "Operational incident command" },
     { id: "RESPONDER", label: "Responder", desc: "Field-optimized action deployment" },
     { id: "CITIZEN", label: "Citizen", desc: "Public reporting & assistance" }
   ];
@@ -55,84 +52,26 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, onOpenAiModal }
     .join('') || 'U';
 
   return (
-    <header className="h-16 border-b flex items-center justify-between px-4 sm:px-8 z-40 sticky top-0 transition-colors" style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+    <header className="relative h-16 border-b flex items-center justify-between px-4 sm:px-8 shrink-0 z-40 transition-colors" style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
       
       <div className="flex items-center gap-4">
         {/* Mobile Toggle */}
         <button
           onClick={onToggleSidebar}
-          className="lg:hidden p-2 rounded-lg transition-colors"
+          className="lg:hidden p-2 -ml-2 rounded-lg transition-colors hover:bg-black/5 dark:hover:bg-white/5"
           style={{ color: 'var(--color-text-secondary)' }}
           aria-label="Toggle sidebar"
         >
           <Menu className="w-5 h-5" />
         </button>
         
-        {/* Brand */}
-        <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-white text-lg italic shrink-0" style={{ backgroundColor: 'var(--color-accent)' }}>
-              S
-            </div>
-            <div className="hidden sm:block">
-              <h1 className="text-sm font-black tracking-tight" style={{ color: 'var(--color-text-primary)' }}>SmartRelief</h1>
-              <p className="text-[10px] font-bold" style={{ color: 'var(--color-text-muted)' }}>Disaster Engine</p>
-            </div>
-        </div>
+        {/* Page Title */}
+        <h1 className="text-lg font-semibold hidden sm:block" style={{ color: 'var(--color-text-primary)' }}>{title}</h1>
       </div>
       
       <div className="flex items-center gap-4 sm:gap-6">
         
-        {/* Role Switcher */}
-        <div className="relative hidden md:flex items-center p-1 border rounded-xl" style={{ backgroundColor: 'var(--color-surface-secondary)', borderColor: 'var(--color-border)' }}>
-          {roles.map(r => {
-            const isActive = currentRole === r.id;
-            return (
-              <button
-                key={r.id}
-                onClick={() => setRole(r.id)}
-                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all duration-200 ${
-                  isActive
-                    ? "shadow-sm"
-                    : "hover:bg-black/5 dark:hover:bg-white/5"
-                }`}
-                style={isActive ? { backgroundColor: 'var(--color-surface)', color: 'var(--color-text-primary)' } : { color: 'var(--color-text-secondary)' }}
-              >
-                {r.label}
-              </button>
-            );
-          })}
-        </div>
 
-        {/* Mobile Role Switcher Dropdown */}
-        <div className="relative md:hidden">
-          <button
-            onClick={() => setShowRoleMenu(!showRoleMenu)}
-            className="px-2.5 py-1.5 border rounded-lg text-xs font-bold flex items-center gap-1.5"
-            style={{ backgroundColor: 'var(--color-surface-secondary)', borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
-          >
-            <Layers className="w-3.5 h-3.5" style={{ color: 'var(--color-text-muted)' }} />
-            <span>{roles.find(r => r.id === currentRole)?.label}</span>
-          </button>
-          
-          {showRoleMenu && (
-            <div className="absolute right-0 mt-2 w-56 p-2 rounded-xl border shadow-xl z-50" style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
-              {roles.map(r => (
-                <button
-                  key={r.id}
-                  onClick={() => {
-                    setRole(r.id);
-                    setShowRoleMenu(false);
-                  }}
-                  className="w-full text-left px-3 py-2 rounded-lg transition-colors mb-1 last:mb-0"
-                  style={currentRole === r.id ? { backgroundColor: 'var(--color-surface-secondary)' } : {}}
-                >
-                  <div className="text-xs font-bold" style={{ color: 'var(--color-text-primary)' }}>{r.label}</div>
-                  <div className="text-[10px] mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{r.desc}</div>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
 
         <div className="flex items-center gap-2 sm:gap-4">
           
@@ -155,7 +94,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, onOpenAiModal }
             <div className="relative">
               <button
                 onClick={() => setShowAlertsDropdown(!showAlertsDropdown)}
-                className="relative rounded-full p-2 transition-colors"
+                className="relative rounded-full p-2 transition-colors hover:bg-black/5 dark:hover:bg-white/5"
                 style={{ color: activeAlerts.length > 0 ? '#EF4444' : 'var(--color-text-secondary)' }}
                 aria-label="Emergency Alerts"
               >
@@ -205,7 +144,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, onOpenAiModal }
             {/* Logs */}
             <button
               onClick={() => setShowLogsDrawer(!showLogsDrawer)}
-              className="relative rounded-full p-2 transition-colors"
+              className="relative rounded-full p-2 transition-colors hover:bg-black/5 dark:hover:bg-white/5"
               style={{ color: 'var(--color-text-secondary)' }}
               title="System Audit & Activity Log"
             >
@@ -214,7 +153,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, onOpenAiModal }
             
             <button
               onClick={resetToDefaultData}
-              className="relative rounded-full p-2 transition-colors"
+              className="relative rounded-full p-2 transition-colors hover:bg-black/5 dark:hover:bg-white/5"
               style={{ color: 'var(--color-text-secondary)' }}
               title="Reset System Demo State"
             >
@@ -223,20 +162,55 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, onOpenAiModal }
             
           </div>
 
-          {/* Profile Section */}
-          <div className="flex items-center gap-3">
-            <div className="text-right hidden sm:block">
-              <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>{currentUser.name}</p>
-              <p className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>{currentUser.lguName || currentRole.replace('_', ' ')}</p>
-            </div>
-            
-            {currentUser.avatarUrl ? (
-              <img src={currentUser.avatarUrl} alt={name} className="w-8 h-8 rounded-full border object-cover" style={{ borderColor: 'var(--color-border)' }} />
-            ) : (
-              <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: 'var(--color-accent)' }}>
-                {initials}
+          {/* Profile Section with Role Switcher */}
+          <div className="relative">
+            <button 
+              onClick={() => setShowProfileMenu(!showProfileMenu)}
+              className="flex items-center gap-3 p-1 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-left"
+            >
+              <div className="hidden sm:block">
+                <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>{currentUser.name}</p>
+                <p className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>{currentUser.lguName || currentRole.replace('_', ' ')}</p>
               </div>
-            )}
+              
+              {currentUser.avatarUrl ? (
+                <img src={currentUser.avatarUrl} alt={name} className="w-8 h-8 rounded-full border object-cover" style={{ borderColor: 'var(--color-border)' }} />
+              ) : (
+                <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: 'var(--color-accent)' }}>
+                  {initials}
+                </div>
+              )}
+            </button>
+
+            <AnimatePresence>
+              {showProfileMenu && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  className="absolute right-0 mt-2 w-56 p-2 rounded-xl shadow-xl z-50 border"
+                  style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
+                >
+                  <div className="px-3 py-2 border-b mb-2" style={{ borderColor: 'var(--color-border)' }}>
+                    <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Switch Role (Testing)</p>
+                  </div>
+                  {roles.map(r => (
+                    <button
+                      key={r.id}
+                      onClick={() => {
+                        setRole(r.id);
+                        setShowProfileMenu(false);
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-lg transition-colors mb-1 last:mb-0 hover:bg-black/5 dark:hover:bg-white/5"
+                      style={currentRole === r.id ? { backgroundColor: 'var(--color-surface-secondary)' } : {}}
+                    >
+                      <div className="text-xs font-bold" style={{ color: 'var(--color-text-primary)' }}>{r.label}</div>
+                      <div className="text-[10px] mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{r.desc}</div>
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
           
         </div>

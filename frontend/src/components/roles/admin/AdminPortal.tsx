@@ -42,6 +42,7 @@ import { KPICard } from "../../common/KPICard";
 import { StatusBadge } from "../../common/StatusBadge";
 import { Modal } from "../../common/Modal";
 import { InteractiveGISMap } from "../../map/InteractiveGISMap";
+import { IncidentManagementTab } from "./IncidentManagementTab";
 import {
   Incident,
   AssistanceRequest,
@@ -298,6 +299,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ activeTab, onOpenAiMod
               </h3>
             </div>
             <InteractiveGISMap
+              mini
               onSelectIncident={inc => setSelectedIncident(inc)}
               onSelectRequest={req => setSelectedRequest(req)}
             />
@@ -307,120 +309,14 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ activeTab, onOpenAiMod
 
       {/* 2. INCIDENT MANAGEMENT TAB */}
       {activeTab === "incidents" && (
-        <div className="space-y-6 animate-in fade-in">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h2 className="text-xl font-black text-slate-900">Incident Management & Command Dispatch</h2>
-              <p className="text-xs text-slate-500 mt-0.5">Verify, prioritize, and assign responder units to field emergencies</p>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <select
-                value={incFilterSeverity}
-                onChange={e => setIncFilterSeverity(e.target.value)}
-                className="bg-slate-50 border border-slate-200 text-xs text-slate-700 font-semibold rounded-xl px-3 py-2 focus:outline-none focus:bg-white"
-              >
-                <option value="ALL">All Severities</option>
-                <option value="CRITICAL">Critical</option>
-                <option value="HIGH">High</option>
-                <option value="MEDIUM">Medium</option>
-                <option value="LOW">Low</option>
-              </select>
-
-              <button
-                onClick={() => setIsNewIncidentOpen(true)}
-                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
-              >
-                <Plus className="w-4 h-4" />
-                <span>New Incident</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Incidents Table */}
-          <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider">
-                  <tr>
-                    <th className="p-4">Incident Details</th>
-                    <th className="p-4">Severity</th>
-                    <th className="p-4">Status</th>
-                    <th className="p-4">Location / Barangay</th>
-                    <th className="p-4">Assigned Responders</th>
-                    <th className="p-4 text-right">Dispatch Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-slate-700">
-                  {filteredIncidents.map(inc => (
-                    <tr key={inc.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="p-4">
-                        <div className="font-bold text-slate-900">{inc.title}</div>
-                        <div className="text-[10px] text-slate-400 mt-0.5">
-                          ID: {inc.id} • Affected: {inc.affectedCount} people • Reported by: {inc.reportedBy}
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <StatusBadge type="severity" value={inc.severity} size="sm" />
-                      </td>
-                      <td className="p-4">
-                        <StatusBadge type="status" value={inc.status} size="sm" />
-                      </td>
-                      <td className="p-4 text-slate-700 font-medium">
-                        {inc.locationName}
-                      </td>
-                      <td className="p-4">
-                        {inc.assignedResponderNames && inc.assignedResponderNames.length > 0 ? (
-                          <span className="text-xs font-semibold text-blue-600">
-                            {inc.assignedResponderNames.join(", ")}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-amber-600 italic font-medium">Unassigned</span>
-                        )}
-                      </td>
-                      <td className="p-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          {inc.status === "REPORTED" && (
-                            <button
-                              onClick={() => verifyIncident(inc.id)}
-                              className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-[11px] font-bold"
-                            >
-                              Verify
-                            </button>
-                          )}
-
-                          {/* Dispatch Assign Dropdown */}
-                          <select
-                            onChange={e => {
-                              if (e.target.value) assignResponderToIncident(inc.id, e.target.value);
-                            }}
-                            defaultValue=""
-                            className="bg-slate-50 border border-slate-200 text-[10px] font-bold text-slate-700 rounded px-2 py-1 focus:outline-none"
-                          >
-                            <option value="" disabled>Dispatch Unit...</option>
-                            {responders.map(r => (
-                              <option key={r.id} value={r.id}>
-                                {r.name} ({r.status})
-                              </option>
-                            ))}
-                          </select>
-
-                          <button
-                            onClick={() => setSelectedIncident(inc)}
-                            className="p-1.5 bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200 rounded"
-                            title="View Timeline & Details"
-                          >
-                            <FileText className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
+        <IncidentManagementTab
+          incidents={incidents}
+          responders={responders}
+          verifyIncident={verifyIncident}
+          assignResponderToIncident={assignResponderToIncident}
+          setIsNewIncidentOpen={setIsNewIncidentOpen}
+          setSelectedIncident={setSelectedIncident}
+        />
       )}
 
       {/* 3. ASSISTANCE REQUESTS TAB */}
@@ -732,18 +628,42 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ activeTab, onOpenAiMod
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-xs space-y-3">
+            <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-xs space-y-4">
               <h3 className="font-bold text-slate-900 text-sm">Response Time Metrics</h3>
               <p className="text-xs text-slate-500">Average time from citizen report to responder arrival on scene</p>
               <div className="text-3xl font-black text-emerald-600">11.4 Minutes</div>
               <div className="text-xs text-slate-500">22% faster than regional DRRM baseline standard.</div>
+              
+              <div className="h-48 w-full mt-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={trendData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                    <XAxis dataKey="time" stroke="#64748b" fontSize={11} />
+                    <YAxis stroke="#64748b" fontSize={11} />
+                    <Tooltip contentStyle={{ backgroundColor: "#ffffff", borderColor: "#e2e8f0", borderRadius: "12px", fontSize: "12px", color: "#0f172a" }} />
+                    <Bar dataKey="resolved" fill="#10b981" radius={[4, 4, 0, 0]} name="Resolved Cases" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
 
-            <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-xs space-y-3">
+            <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-xs space-y-4">
               <h3 className="font-bold text-slate-900 text-sm">Total Citizens Evacuated & Rescued</h3>
               <p className="text-xs text-slate-500">Total lives saved across active operations</p>
               <div className="text-3xl font-black text-blue-600">1,050 Evacuees</div>
               <div className="text-xs text-slate-500">Spread across 4 active shelter facilities.</div>
+              
+              <div className="h-48 w-full mt-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={trendData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                    <XAxis dataKey="time" stroke="#64748b" fontSize={11} />
+                    <YAxis stroke="#64748b" fontSize={11} />
+                    <Tooltip contentStyle={{ backgroundColor: "#ffffff", borderColor: "#e2e8f0", borderRadius: "12px", fontSize: "12px", color: "#0f172a" }} />
+                    <Line type="step" dataKey="requests" stroke="#3b82f6" strokeWidth={3} name="Total Evacuees" />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
         </div>
@@ -923,7 +843,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ activeTab, onOpenAiMod
 
             <p className="text-xs text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-200 font-medium">{selectedIncident.description}</p>
 
-            <div className="grid grid-cols-2 gap-2 text-xs text-slate-500">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-500">
               <div>Location: <span className="text-slate-900 font-bold">{selectedIncident.locationName}</span></div>
               <div>People Affected: <span className="text-slate-900 font-bold">{selectedIncident.affectedCount}</span></div>
               <div>Reported By: <span className="text-slate-900 font-bold">{selectedIncident.reportedBy}</span></div>

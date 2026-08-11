@@ -88,7 +88,7 @@ export const SmartReliefProvider: React.FC<{ children: React.ReactNode }> = ({ c
   // Local storage hydrator helper
   const getStored = <T,>(key: string, fallback: T): T => {
     try {
-      const stored = localStorage.getItem(`smartrelief_${key}`);
+      const stored = localStorage.getItem(`smartrelief_v2_${key}`);
       return stored ? JSON.parse(stored) : fallback;
     } catch {
       return fallback;
@@ -97,7 +97,7 @@ export const SmartReliefProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const setStored = <T,>(key: string, value: T) => {
     try {
-      localStorage.setItem(`smartrelief_${key}`, JSON.stringify(value));
+      localStorage.setItem(`smartrelief_v2_${key}`, JSON.stringify(value));
     } catch (e) {
       console.error(e);
     }
