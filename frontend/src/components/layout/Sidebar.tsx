@@ -24,6 +24,7 @@ import {
   Search,
   Clock,
   Bell,
+  ChevronLeft,
   ChevronRight,
   LogOut
 } from "lucide-react";
@@ -150,7 +151,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         } ${isRetracted ? "w-20" : "w-64"}`}
         style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
       >
-        <div className={`py-6 overflow-y-auto flex-1 ${isRetracted ? "px-4" : "px-6"}`}>
+        <div className={`py-6 flex-1 ${isRetracted ? "px-4" : "px-6"}`}>
           
           <div className={`flex items-center mb-8 overflow-hidden ${isRetracted ? "justify-center" : "gap-3"}`}>
             <div className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-white text-lg italic shrink-0" style={{ backgroundColor: 'var(--color-accent)' }}>
@@ -173,7 +174,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </AnimatePresence>
           </div>
 
-          </div>
+
 
           {/* Nav Items Group */}
           <nav className="space-y-1 relative pb-20 lg:pb-0">
@@ -196,8 +197,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     onSelectTab(item.id);
                     if (window.innerWidth < 1024) onClose();
                   }}
-                  className={`w-full flex items-center justify-between py-2 rounded-lg group relative z-0 ${
-                    isRetracted ? "px-0 justify-center w-12 mx-auto" : "px-3"
+                  className={`w-full flex items-center py-2 rounded-lg group relative z-0 ${
+                    isRetracted ? "px-0 justify-center w-12 mx-auto" : "px-3 justify-between"
                   } ${isActive ? "" : "hover:bg-[#F3F4F6] hover:text-[#111827]"}`}
                   style={{ color: isActive ? 'var(--color-surface)' : 'var(--color-text-secondary)' }}
                 >
@@ -211,8 +212,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     />
                   )}
                   
-                  <div className={`flex items-center ${isRetracted ? "justify-center" : "gap-3"}`}>
+                  <div className={`flex items-center ${isRetracted ? "justify-center" : "gap-3.5"} min-w-0`}>
                     <Icon className="w-5 h-5 shrink-0" />
+                    
+                    {isRetracted && item.badge !== undefined && (
+                      <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-[#111827]"></span>
+                    )}
                     
                     {isRetracted && (
                       <div className="absolute left-full ml-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[9999] flex items-center translate-x-2 group-hover:translate-x-0 pointer-events-none">
@@ -232,7 +237,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           initial={{ opacity: 0, width: 0 }}
                           animate={{ opacity: 1, width: 'auto' }}
                           exit={{ opacity: 0, width: 0 }}
-                          className="text-sm font-medium whitespace-nowrap overflow-hidden"
+                          className="text-sm font-medium whitespace-nowrap overflow-hidden text-ellipsis"
                         >
                           {item.label}
                         </motion.span>
@@ -240,16 +245,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     </AnimatePresence>
                   </div>
                   
-                  {!isRetracted && item.badge !== undefined && (
-                    <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
-                      isActive ? 'bg-white/20 text-white' : 'bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-400'
-                    }`}>
-                      {item.badge}
-                    </span>
-                  )}
-                  
-                  {!isRetracted && isActive && item.badge === undefined && (
-                    <motion.div layoutId="activeNav" className="w-1.5 h-1.5 rounded-full bg-white mr-2 shrink-0" />
+                  {!isRetracted && (
+                    <div className="flex items-center gap-3 ml-auto pl-3 shrink-0">
+                      {item.badge !== undefined && (
+                        <span className={`px-2.5 py-0.5 text-[10px] font-bold rounded-full ${
+                          isActive ? 'bg-white/20 text-white' : 'bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-400'
+                        }`}>
+                          {item.badge}
+                        </span>
+                      )}
+                      
+                      {isActive && (
+                        <motion.div layoutId="activeNav" className="w-1.5 h-1.5 rounded-full bg-white shadow-sm" />
+                      )}
+                    </div>
                   )}
                 </button>
               );
@@ -283,7 +292,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     initial={{ opacity: 0, width: 0 }}
                     animate={{ opacity: 1, width: 'auto' }}
                     exit={{ opacity: 0, width: 0 }}
-                    className="min-w-0 overflow-hidden"
+                    className="min-w-0 overflow-hidden whitespace-nowrap"
                   >
                     <p className="text-xs font-bold truncate" style={{ color: 'var(--color-text-primary)' }}>{currentUser?.email || 'admin@smartrelief.gov.ph'}</p>
                     <p className="text-[0.625rem] uppercase font-bold tracking-tighter truncate" style={{ color: 'var(--color-text-muted)' }}>{currentRole.replace('_', ' ')}</p>
