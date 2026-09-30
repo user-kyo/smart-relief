@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Users,
   ShieldCheck,
@@ -59,15 +59,15 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({ activeTab })
   const [localPermissions, setLocalPermissions] = useState<RolePermission[]>(rolePermissions);
   const [hasUnsavedPermissions, setHasUnsavedPermissions] = useState(false);
 
-  const activeAdmins = users.filter(u => u.role === "ADMIN" && u.status === "ACTIVE").length;
-  const activeResponders = users.filter(u => (u.role === "RESPONDER" || u.role === "VOLUNTEER") && u.status === "ACTIVE").length;
-  const activeIncidents = incidents.filter(i => i.status !== "RESOLVED" && i.status !== "CLOSED").length;
+  const activeAdmins = useMemo(() => users.filter(u => u.role === "ADMIN" && u.status === "ACTIVE").length, [users]);
+  const activeResponders = useMemo(() => users.filter(u => (u.role === "RESPONDER" || u.role === "VOLUNTEER") && u.status === "ACTIVE").length, [users]);
+  const activeIncidents = useMemo(() => incidents.filter(i => i.status !== "RESOLVED" && i.status !== "CLOSED").length, [incidents]);
 
-  const filteredUsers = users.filter(u => {
+  const filteredUsers = useMemo(() => users.filter(u => {
     const matchesSearch = u.name.toLowerCase().includes(userSearch.toLowerCase()) || u.email.toLowerCase().includes(userSearch.toLowerCase());
     const matchesRole = roleFilter === "ALL" || u.role === roleFilter;
     return matchesSearch && matchesRole;
-  });
+  }), [users, userSearch, roleFilter]);
 
   const handleCreateUserSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,62 +106,67 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({ activeTab })
       {/* 1. OVERVIEW TAB */}
       {activeTab === "overview" && (
         <div className="space-y-6 animate-in fade-in">
-          <div>
-            <h2 className="text-xl font-black text-slate-900">Super Admin System Command</h2>
-            <p className="text-xs text-slate-500 mt-0.5">High-Level Governance, User Access Control & Multi-LGU Infrastructure</p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <KPICard title="Total Registered Users" value={users.length} subtext="Across all 4 role portals" icon={Users} variant="blue" />
-            <KPICard title="Active LGU Administrators" value={activeAdmins} subtext="DRRM Operational Leads" icon={ShieldCheck} variant="indigo" />
-            <KPICard title="Responders & Volunteers" value={activeResponders} subtext="Registered Field Units" icon={UserCheck} variant="emerald" />
-            <KPICard title="Registered LGUs" value={lgus.length} subtext="Municipal DRRM Operations" icon={Building2} variant="amber" />
-          </div>
-
-          {/* Quick System Summary */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-xs space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-                  <Building2 className="w-4 h-4 text-blue-600" />
-                  Registered LGU DRRM Operations
-                </h3>
-                <span className="text-xs font-bold text-blue-600">{lgus.length} Active Offices</span>
-              </div>
-              <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                {lgus.map(lgu => (
-                  <div key={lgu.id} className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs">
-                    <div>
-                      <div className="font-bold text-slate-900">{lgu.name}</div>
-                      <div className="text-[10px] text-slate-500">{lgu.region} • DRRM Head: {lgu.drrmHead}</div>
-                    </div>
-                    <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 rounded">
-                      {lgu.registeredRespondersCount} Responders
-                    </span>
-                  </div>
-                ))}
-              </div>
+          <div className="space-y-4">
+            
+            {/* 1. KPI Cards Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <KPICard title="Total Users" value={users.length} icon={Users} variant="blue" />
+              <KPICard title="Active Admins" value={activeAdmins} icon={ShieldCheck} variant="indigo" />
+              <KPICard title="Field Units" value={activeResponders} icon={UserCheck} variant="emerald" />
+              <KPICard title="Registered LGUs" value={lgus.length} icon={Building2} variant="amber" />
             </div>
 
-            <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-xs space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-amber-600" />
-                  Recent Governance Activity Logs
-                </h3>
-                <span className="text-xs text-slate-500 font-mono font-medium">Live Audit</span>
-              </div>
-              <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                {systemLogs.slice(0, 5).map(log => (
-                  <div key={log.id} className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-1">
-                    <div className="flex items-center justify-between text-[10px] text-slate-500">
-                      <span className="font-bold text-blue-600">{log.userName} ({log.userRole})</span>
-                      <span>{new Date(log.timestamp).toLocaleTimeString()}</span>
-                    </div>
-                    <div className="text-slate-700 font-medium truncate">{log.details}</div>
+            {/* 2. Middle Row: LGUs and Logs */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              
+              {/* Registered LGUs */}
+              <div className="h-[400px] bg-white dark:bg-slate-900 border rounded-2xl shadow-sm flex flex-col transition-all duration-300 hover:shadow-md hover:-translate-y-1 hover:border-slate-300 dark:hover:border-slate-700" style={{ borderColor: 'var(--color-border)' }}>
+                <div className="flex items-center justify-between p-4 border-b shrink-0" style={{ borderColor: 'var(--color-border)' }}>
+                  <div className="flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-slate-400" />
+                    <h3 className="font-bold text-[0.875rem]" style={{ color: 'var(--color-text-primary)' }}>Registered LGU DRRM Operations</h3>
                   </div>
-                ))}
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{lgus.length} Active Offices</span>
+                </div>
+                <div className="flex-1 w-full overflow-y-auto p-4 space-y-3 custom-scrollbar">
+                  {lgus.map(lgu => (
+                    <div key={lgu.id} className="p-4 bg-slate-50 dark:bg-slate-800/50 border rounded-xl flex flex-wrap items-center justify-between gap-3 group transition-colors" style={{ borderColor: 'var(--color-border)' }}>
+                      <div>
+                        <div className="font-bold text-sm tracking-tight mb-0.5" style={{ color: 'var(--color-text-primary)' }}>{lgu.name}</div>
+                        <div className="text-[10px] font-medium" style={{ color: 'var(--color-text-muted)' }}>{lgu.region} • DRRM Head: {lgu.drrmHead}</div>
+                      </div>
+                      <span className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 rounded-md">
+                        {lgu.registeredRespondersCount} Responders
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
+
+              {/* Governance Activity Logs */}
+              <div className="h-[400px] bg-white dark:bg-slate-900 border rounded-2xl shadow-sm flex flex-col transition-all duration-300 hover:shadow-md hover:-translate-y-1 hover:border-slate-300 dark:hover:border-slate-700" style={{ borderColor: 'var(--color-border)' }}>
+                <div className="flex items-center justify-between p-4 border-b shrink-0" style={{ borderColor: 'var(--color-border)' }}>
+                  <div className="flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-slate-400" />
+                    <h3 className="font-bold text-[0.875rem]" style={{ color: 'var(--color-text-primary)' }}>Governance Activity Logs</h3>
+                  </div>
+                  <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-red-500">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" /> Live Audit
+                  </span>
+                </div>
+                <div className="flex-1 w-full overflow-y-auto p-4 space-y-2 custom-scrollbar">
+                  {systemLogs.slice(0, 6).map(log => (
+                    <div key={log.id} className="p-3 bg-slate-50 dark:bg-slate-800/50 border rounded-xl flex flex-col gap-1 transition-colors" style={{ borderColor: 'var(--color-border)' }}>
+                      <div className="flex items-center justify-between text-[10px]">
+                        <span className="font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">{log.userName} ({log.userRole})</span>
+                        <span className="font-mono text-slate-400">{new Date(log.timestamp).toLocaleTimeString()}</span>
+                      </div>
+                      <div className="text-xs font-medium" style={{ color: 'var(--color-text-primary)' }}>{log.details}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
@@ -243,7 +248,7 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({ activeTab })
                       </td>
                       <td className="p-4">
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                          usr.status === "ACTIVE" ? "bg-emerald-100 text-emerald-800 border border-emerald-200" : "bg-slate-100 text-slate-600 border border-slate-200"
+                          usr.status === "ACTIVE" ? "bg-emerald-100 text-emerald-800 border border-emerald-200" : (usr.status === "PENDING" ? "bg-amber-100 text-amber-800 border border-amber-200" : "bg-slate-100 text-slate-600 border border-slate-200")
                         }`}>
                           {usr.status}
                         </span>
@@ -269,7 +274,7 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({ activeTab })
                             className={`p-1.5 rounded-lg border transition-colors ${
                               usr.status === "ACTIVE" ? "bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100" : "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
                             }`}
-                            title={usr.status === "ACTIVE" ? "Deactivate User Account" : "Reactivate User Account"}
+                            title={usr.status === "ACTIVE" ? "Deactivate User Account" : (usr.status === "PENDING" ? "Approve User Account" : "Reactivate User Account")}
                           >
                             {usr.status === "ACTIVE" ? <UserX className="w-3.5 h-3.5" /> : <UserCheck className="w-3.5 h-3.5" />}
                           </button>

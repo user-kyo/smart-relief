@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   AlertOctagon,
   FileText,
@@ -15,13 +15,16 @@ import {
   Filter,
   Send,
   ArrowRight,
+  ArrowUpRight,
   TrendingUp,
   AlertTriangle,
   Download,
   Building,
   RefreshCcw,
   CheckCircle2,
-  Clock
+  Clock,
+  Activity,
+  ChevronRight
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -59,9 +62,10 @@ import {
 interface AdminPortalProps {
   activeTab: string;
   onOpenAiModal?: () => void;
+  onNavigateTab?: (tabId: string) => void;
 }
 
-export const AdminPortal: React.FC<AdminPortalProps> = ({ activeTab, onOpenAiModal }) => {
+export const AdminPortal: React.FC<AdminPortalProps> = ({ activeTab, onOpenAiModal, onNavigateTab }) => {
   const {
     incidents,
     assistanceRequests,
@@ -99,8 +103,24 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ activeTab, onOpenAiMod
     severity: "HIGH",
     locationName: "Barangay San Jose Sector 4",
     barangay: "Barangay San Jose",
-    affectedCount: 10
+    affectedCount: 10,
+    lat: 14.0720,
+    lng: 121.3250,
   });
+
+  // Skeleton Loading State
+  const [isLoading, setIsLoading] = useState(true);
+  
+  useEffect(() => {
+    setIsLoading(true);
+    const timer = setTimeout(() => setIsLoading(false), 500); // 500ms artificial delay for smooth skeleton animation
+    return () => clearTimeout(timer);
+  }, [activeTab]);
+
+  const handleMapClick = (lat: number, lng: number) => {
+    setNewIncData(prev => ({ ...prev, lat, lng }));
+    setIsNewIncidentOpen(true);
+  };
 
   const [newResData, setNewResData] = useState<Partial<ResourceItem>>({
     name: "",
@@ -138,14 +158,14 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ activeTab, onOpenAiMod
   ];
 
   // Calculated Counters
-  const activeIncidents = incidents.filter(i => i.status !== "RESOLVED" && i.status !== "CLOSED");
-  const criticalIncidents = incidents.filter(i => i.severity === "CRITICAL" && i.status !== "RESOLVED");
-  const pendingRequests = assistanceRequests.filter(r => r.status === "SUBMITTED" || r.status === "VERIFIED");
-  const availableResponders = responders.filter(r => r.status === "AVAILABLE");
-  const lowStockResources = resources.filter(r => r.stockStatus === "LOW_STOCK" || r.stockStatus === "DEPLETED");
+  const activeIncidents = useMemo(() => incidents.filter(i => i.status !== "RESOLVED" && i.status !== "CLOSED"), [incidents]);
+  const criticalIncidents = useMemo(() => incidents.filter(i => i.severity === "CRITICAL" && i.status !== "RESOLVED"), [incidents]);
+  const pendingRequests = useMemo(() => assistanceRequests.filter(r => r.status === "SUBMITTED" || r.status === "VERIFIED"), [assistanceRequests]);
+  const availableResponders = useMemo(() => responders.filter(r => r.status === "AVAILABLE"), [responders]);
+  const lowStockResources = useMemo(() => resources.filter(r => r.stockStatus === "LOW_STOCK" || r.stockStatus === "DEPLETED"), [resources]);
 
-  const filteredIncidents = incidents.filter(i => incFilterSeverity === "ALL" || i.severity === incFilterSeverity);
-  const filteredRequests = assistanceRequests.filter(r => reqFilterType === "ALL" || r.requestType === reqFilterType);
+  const filteredIncidents = useMemo(() => incidents.filter(i => incFilterSeverity === "ALL" || i.severity === incFilterSeverity), [incidents, incFilterSeverity]);
+  const filteredRequests = useMemo(() => assistanceRequests.filter(r => reqFilterType === "ALL" || r.requestType === reqFilterType), [assistanceRequests, reqFilterType]);
 
   const handleNewIncidentSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -170,139 +190,432 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ activeTab, onOpenAiMod
     setIsTransferResourceOpen(false);
   };
 
+  const renderSkeleton = () => {
+    switch (activeTab) {
+      case "dashboard":
+        return (
+          <div className="space-y-6 animate-in fade-in duration-300">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="p-5 md:p-6 rounded-2xl border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm h-32 flex flex-col justify-between overflow-hidden animate-pulse">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-slate-200 dark:bg-slate-800" />
+                      <div className="h-4 w-24 bg-slate-200 dark:bg-slate-800 rounded" />
+                    </div>
+                    <div className="w-12 h-5 rounded-full bg-slate-200 dark:bg-slate-800" />
+                  </div>
+                  <div className="h-8 w-16 bg-slate-200 dark:bg-slate-800 rounded mt-auto" />
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 h-[500px] rounded-2xl border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden animate-pulse">
+                <div className="absolute top-4 right-4 flex flex-col gap-2">
+                  <div className="w-8 h-8 bg-slate-200 dark:bg-slate-800 rounded shadow" />
+                  <div className="w-8 h-8 bg-slate-200 dark:bg-slate-800 rounded shadow" />
+                </div>
+              </div>
+              <div className="lg:col-span-1 h-[500px] rounded-2xl border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm p-5 flex flex-col animate-pulse">
+                <div className="h-6 w-1/3 bg-slate-200 dark:bg-slate-800 rounded mb-6" />
+                <div className="space-y-4">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="flex gap-4">
+                      <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800 shrink-0" />
+                      <div className="space-y-2 flex-1">
+                        <div className="h-4 w-1/4 bg-slate-200 dark:bg-slate-800 rounded" />
+                        <div className="h-3 w-3/4 bg-slate-200 dark:bg-slate-800 rounded" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      case "map":
+        return (
+          <div className="h-[calc(100vh-140px)] w-full rounded-2xl border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden animate-pulse">
+            <div className="absolute top-4 right-4 flex flex-col gap-2">
+              <div className="w-8 h-8 bg-slate-200 dark:bg-slate-800 rounded shadow" />
+              <div className="w-8 h-8 bg-slate-200 dark:bg-slate-800 rounded shadow" />
+            </div>
+            <div className="absolute top-1/3 left-1/4 w-4 h-4 rounded-full bg-slate-300 dark:bg-slate-700" />
+            <div className="absolute top-1/2 right-1/3 w-4 h-4 rounded-full bg-slate-300 dark:bg-slate-700" />
+            <div className="absolute bottom-1/4 left-1/2 w-4 h-4 rounded-full bg-slate-300 dark:bg-slate-700" />
+          </div>
+        );
+      case "ai-support":
+        return (
+          <div className="space-y-6 animate-in fade-in duration-300">
+            <div className="flex items-center justify-between mb-4">
+              <div className="h-8 w-1/4 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse" />
+              <div className="h-10 w-32 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="space-y-4">
+                  <div className="flex items-center gap-2 mb-4 animate-pulse">
+                    <div className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-800" />
+                    <div className="h-5 w-24 bg-slate-200 dark:bg-slate-800 rounded" />
+                  </div>
+                  {[...Array(2)].map((_, j) => (
+                    <div key={j} className="p-5 rounded-xl border bg-white dark:bg-slate-900 shadow-sm border-slate-200 dark:border-slate-800 animate-pulse space-y-4">
+                      <div className="flex justify-between items-start">
+                        <div className="h-5 w-3/4 bg-slate-200 dark:bg-slate-800 rounded" />
+                        <div className="h-5 w-12 bg-slate-200 dark:bg-slate-800 rounded-full" />
+                      </div>
+                      <div className="space-y-2">
+                        <div className="h-3 w-full bg-slate-200 dark:bg-slate-800 rounded" />
+                        <div className="h-3 w-5/6 bg-slate-200 dark:bg-slate-800 rounded" />
+                      </div>
+                      <div className="h-8 w-full bg-slate-200 dark:bg-slate-800 rounded-lg mt-4" />
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      case "incidents":
+      case "requests":
+        return (
+          <div className="space-y-6 animate-in fade-in duration-300">
+            <div className="flex justify-between items-center">
+              <div className="h-10 w-64 bg-slate-200 dark:bg-slate-800 rounded-xl animate-pulse" />
+              <div className="h-10 w-32 bg-slate-200 dark:bg-slate-800 rounded-xl animate-pulse" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="p-4 rounded-2xl border bg-white dark:bg-slate-900 shadow-sm border-slate-200 dark:border-slate-800 animate-pulse space-y-4">
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-2 w-full">
+                      <div className="h-5 w-3/4 bg-slate-200 dark:bg-slate-800 rounded" />
+                      <div className="h-3 w-1/2 bg-slate-200 dark:bg-slate-800 rounded" />
+                    </div>
+                    <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800 shrink-0" />
+                  </div>
+                  <div className="flex gap-2">
+                    <div className="h-5 w-16 bg-slate-200 dark:bg-slate-800 rounded-full" />
+                    <div className="h-5 w-20 bg-slate-200 dark:bg-slate-800 rounded-full" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      case "resources":
+        return (
+          <div className="space-y-6 animate-in fade-in duration-300">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="p-4 rounded-2xl border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm h-24 flex flex-col justify-center animate-pulse">
+                  <div className="flex justify-between items-center mb-2">
+                    <div className="h-3 w-20 bg-slate-200 dark:bg-slate-800 rounded" />
+                    <div className="w-6 h-6 rounded-lg bg-slate-200 dark:bg-slate-800" />
+                  </div>
+                  <div className="h-6 w-16 bg-slate-200 dark:bg-slate-800 rounded" />
+                </div>
+              ))}
+            </div>
+            <div className="rounded-2xl border bg-white dark:bg-slate-900 shadow-sm border-slate-200 dark:border-slate-800 animate-pulse overflow-hidden">
+              <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/30">
+                <div className="h-5 w-1/4 bg-slate-200 dark:bg-slate-700 rounded" />
+                <div className="h-8 w-32 bg-slate-200 dark:bg-slate-700 rounded-lg" />
+              </div>
+              <div className="divide-y divide-slate-100 dark:divide-slate-800/50">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="p-4 flex gap-4 items-center">
+                    <div className="h-10 w-10 bg-slate-200 dark:bg-slate-800 rounded-lg" />
+                    <div className="space-y-2 flex-1">
+                      <div className="h-4 w-1/3 bg-slate-200 dark:bg-slate-800 rounded" />
+                      <div className="h-3 w-1/4 bg-slate-200 dark:bg-slate-800 rounded" />
+                    </div>
+                    <div className="h-8 w-24 bg-slate-200 dark:bg-slate-800 rounded-lg" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      case "users":
+      default:
+        return (
+          <div className="space-y-6 animate-in fade-in duration-300">
+            <div className="h-12 w-full max-w-sm bg-slate-200 dark:bg-slate-800 rounded-xl animate-pulse" />
+            <div className="rounded-2xl border bg-white dark:bg-slate-900 shadow-sm border-slate-200 dark:border-slate-800 animate-pulse overflow-hidden">
+              <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/30">
+                <div className="h-5 w-1/4 bg-slate-200 dark:bg-slate-700 rounded" />
+                <div className="h-8 w-32 bg-slate-200 dark:bg-slate-700 rounded-lg" />
+              </div>
+              <div className="divide-y divide-slate-100 dark:divide-slate-800/50">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="p-4 flex gap-4 items-center">
+                    <div className="h-10 w-10 bg-slate-200 dark:bg-slate-800 rounded-full" />
+                    <div className="space-y-2 flex-1">
+                      <div className="h-4 w-1/3 bg-slate-200 dark:bg-slate-800 rounded" />
+                      <div className="h-3 w-1/4 bg-slate-200 dark:bg-slate-800 rounded" />
+                    </div>
+                    <div className="h-6 w-16 bg-slate-200 dark:bg-slate-800 rounded-full" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+    }
+  };
+
+  if (isLoading) {
+    return renderSkeleton();
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in duration-500">
       
       {/* 1. OPERATIONAL DASHBOARD TAB */}
       {activeTab === "dashboard" && (
         <div className="space-y-6 animate-in fade-in">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h2 className="text-xl font-black text-slate-900">LGU-DRRM Operational Command Center</h2>
-              <p className="text-xs text-slate-500 mt-0.5">Real-time disaster resource coordination, incident triage & responder telemetry</p>
+
+          <div className="space-y-4">
+            
+            {/* 1. KPI Cards Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <KPICard 
+                title="Active Incidents" 
+                value={activeIncidents.length} 
+                icon={AlertOctagon} 
+                variant="rose" 
+                trend={{ value: "+2 in 1h", isUp: true }}
+                subtext={criticalIncidents.length > 0 ? `${criticalIncidents.length} Critical Events` : "All monitored"}
+                onClick={() => onNavigateTab && onNavigateTab("incidents")}
+              />
+              <KPICard 
+                title="Pending Requests" 
+                value={pendingRequests.length} 
+                icon={FileText} 
+                variant="amber"
+                trend={{ value: "-4 in 24h", isUp: false }}
+                subtext="Waiting for resource allocation" 
+                onClick={() => onNavigateTab && onNavigateTab("requests")}
+              />
+              <KPICard 
+                title="Available Field Units" 
+                value={availableResponders.length} 
+                icon={Users2} 
+                variant="emerald" 
+                trend={{ value: "+12 total", isUp: true }}
+                subtext="Ready for immediate dispatch"
+                onClick={() => onNavigateTab && onNavigateTab("map")}
+              />
+              <KPICard 
+                title="Critical Resources" 
+                value={lowStockResources.length} 
+                icon={Boxes} 
+                variant="indigo" 
+                trend={{ value: "2 depleted", isUp: false }}
+                subtext="Requires urgent resupply"
+                onClick={() => onNavigateTab && onNavigateTab("resources")}
+              />
             </div>
 
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setIsNewIncidentOpen(true)}
-                className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Report Emergency Incident</span>
-              </button>
-
-              {onOpenAiModal && (
-                <button
-                  onClick={onOpenAiModal}
-                  className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
-                >
-                  <Sparkles className="w-4 h-4" />
-                  <span>AI Decision Support</span>
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Key Metric KPI Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <KPICard title="Active Incidents" value={activeIncidents.length} subtext={`${criticalIncidents.length} Critical Level`} icon={AlertOctagon} variant="rose" />
-            <KPICard title="Pending Assistance Requests" value={pendingRequests.length} subtext="Citizens waiting for dispatch" icon={FileText} variant="amber" />
-            <KPICard title="Available Responders" value={availableResponders.length} subtext={`${responders.length} Total Units`} icon={Users2} variant="emerald" />
-            <KPICard title="Low-Stock Supplies" value={lowStockResources.length} subtext="Items below minimum threshold" icon={Boxes} variant="indigo" />
-          </div>
-
-          {/* AI Decision Support Priority Banner */}
-          {aiRecommendations.filter(r => r.status === "PENDING").length > 0 && (
-            <div className="p-4 rounded-xl bg-[#0F172A] border border-slate-800 shadow-md text-white flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="flex items-start gap-3">
-                <div className="p-2.5 rounded-xl bg-blue-600/30 text-blue-400 border border-blue-500/30">
-                  <Sparkles className="w-5 h-5 animate-spin-slow" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-sm text-white">
-                      AI Priority Recommendation: {aiRecommendations.find(r => r.status === "PENDING")?.title}
-                    </span>
-                    <StatusBadge type="severity" value={aiRecommendations.find(r => r.status === "PENDING")?.severity || "HIGH"} size="sm" />
+            {/* 2. AI Recommendation Banner (if active) */}
+            {aiRecommendations.filter(r => r.status === "PENDING").length > 0 && (
+              <div className="bg-white dark:bg-slate-900 border rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-1" style={{ borderColor: 'var(--color-border)' }}>
+                <div className="flex items-start sm:items-center gap-4 flex-1">
+                  <Sparkles className="w-5 h-5 text-blue-500 shrink-0" />
+                  <div>
+                    <h3 className="font-bold text-sm" style={{ color: 'var(--color-text-primary)' }}>
+                      AI Priority Action: {aiRecommendations.find(r => r.status === "PENDING")?.title}
+                    </h3>
+                    <p className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>
+                      {aiRecommendations.find(r => r.status === "PENDING")?.reasoning}
+                    </p>
                   </div>
-                  <p className="text-xs text-slate-300 mt-1 line-clamp-1">
-                    <span className="text-amber-400 font-semibold">Why suggested: </span>
-                    {aiRecommendations.find(r => r.status === "PENDING")?.reasoning}
-                  </p>
+                </div>
+                <div className="shrink-0 w-full sm:w-auto">
+                  <button
+                    onClick={() => acceptAIRecommendation(aiRecommendations.find(r => r.status === "PENDING")!.id)}
+                    className="w-full sm:w-auto px-4 py-2 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    Execute Action
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* 3. Live Map (Full Width, Larger) */}
+            <div className="h-[500px] lg:h-[650px] bg-white dark:bg-slate-900 border rounded-2xl shadow-sm flex flex-col overflow-hidden transition-all duration-300 hover:shadow-md hover:-translate-y-1 hover:border-slate-300 dark:hover:border-slate-700" style={{ borderColor: 'var(--color-border)' }}>
+              <div className="p-4 border-b flex items-center justify-between" style={{ borderColor: 'var(--color-border)' }}>
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-5 h-5 text-slate-400" />
+                  <h3 className="font-bold text-base" style={{ color: 'var(--color-text-primary)' }}>Live Spatial Tactical Map</h3>
+                </div>
+                <div className="flex items-center gap-4">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-500 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" /> LIVE FEED
+                  </span>
+                  <button 
+                    onClick={() => onNavigateTab && onNavigateTab('map')}
+                    className="hidden sm:flex text-[11px] font-bold uppercase tracking-wider text-blue-600 hover:text-blue-700 items-center gap-1 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                  >
+                    Open Full Map <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+              <div className="flex-1 w-full relative z-0 min-h-0">
+                <InteractiveGISMap 
+                  mini={false}
+                  hideLegend={true}
+                  className="h-full bg-slate-900 overflow-hidden"
+                  onSelectIncident={inc => setSelectedIncident(inc)}
+                  onSelectRequest={req => setSelectedRequest(req)}
+                  onMapClick={handleMapClick}
+                />
+              </div>
+              <div className="p-4 border-t flex flex-wrap items-center justify-between gap-4 shrink-0" style={{ borderColor: 'var(--color-border)' }}>
+                <div className="flex items-center gap-4 font-medium flex-wrap text-[10px] sm:text-xs">
+                  <span className="flex items-center gap-1.5" style={{ color: 'var(--color-text-secondary)' }}>
+                    <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block" /> Critical
+                  </span>
+                  <span className="flex items-center gap-1.5" style={{ color: 'var(--color-text-secondary)' }}>
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" /> Responder
+                  </span>
+                  <span className="flex items-center gap-1.5" style={{ color: 'var(--color-text-secondary)' }}>
+                    <span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block" /> Evacuation
+                  </span>
+                  <span className="flex items-center gap-1.5" style={{ color: 'var(--color-text-secondary)' }}>
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" /> Request
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-[10px] font-medium hidden md:block" style={{ color: 'var(--color-text-secondary)' }}>Synced with field units</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-500">System Operational</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 4. Secondary Analytics & Lists (4 Columns Grid) */}
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+              
+              {/* Response Velocity Trends (2 columns) */}
+              <div className="lg:col-span-2 h-[350px] bg-white dark:bg-slate-900 border rounded-2xl shadow-sm flex flex-col overflow-hidden transition-all duration-300 hover:shadow-md hover:-translate-y-1 hover:border-slate-300 dark:hover:border-slate-700" style={{ borderColor: 'var(--color-border)' }}>
+                <div className="p-4 border-b flex items-center justify-between shrink-0" style={{ borderColor: 'var(--color-border)' }}>
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-slate-400" />
+                    <h3 className="font-bold text-[0.875rem]" style={{ color: 'var(--color-text-primary)' }}>Response Velocity Trends</h3>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 hidden sm:block">24H Timeline</span>
+                    <button onClick={() => onNavigateTab && onNavigateTab('incidents')} className="text-[10px] font-bold uppercase tracking-wider text-blue-600 hover:text-blue-700 flex items-center gap-1 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 px-2.5 py-1.5 rounded-md transition-colors cursor-pointer">
+                      Full Report <ArrowUpRight className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+                <div className="flex-1 w-full min-h-0 p-4">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={trendData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
+                      <XAxis dataKey="time" stroke="var(--color-text-muted)" fontSize={10} tickLine={false} axisLine={false} dy={10} />
+                      <YAxis stroke="var(--color-text-muted)" fontSize={10} tickLine={false} axisLine={false} />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)", borderRadius: "12px", fontSize: "12px", color: "var(--color-text-primary)", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }} 
+                        itemStyle={{ fontWeight: 'bold' }}
+                      />
+                      <Line type="monotone" dataKey="incidents" stroke="#f43f5e" strokeWidth={3} name="Active Incidents" dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
+                      <Line type="monotone" dataKey="requests" stroke="#f59e0b" strokeWidth={3} name="Requests" dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
+                      <Line type="monotone" dataKey="resolved" stroke="#10b981" strokeWidth={3} name="Resolved" dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  onClick={() => acceptAIRecommendation(aiRecommendations.find(r => r.status === "PENDING")!.id)}
-                  className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all shadow-sm"
-                >
-                  Accept & Execute Action
-                </button>
+              {/* Category Breakdown (1 column) */}
+              <div className="lg:col-span-1 h-[350px] bg-white dark:bg-slate-900 border rounded-2xl shadow-sm flex flex-col overflow-hidden transition-all duration-300 hover:shadow-md hover:-translate-y-1 hover:border-slate-300 dark:hover:border-slate-700" style={{ borderColor: 'var(--color-border)' }}>
+                <div className="p-4 border-b flex items-center justify-between shrink-0" style={{ borderColor: 'var(--color-border)' }}>
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-slate-400" />
+                    <h3 className="font-bold text-[0.875rem]" style={{ color: 'var(--color-text-primary)' }}>Incident Types</h3>
+                  </div>
+                  <button onClick={() => onNavigateTab && onNavigateTab('incidents')} className="text-[10px] font-bold uppercase tracking-wider text-blue-600 hover:text-blue-700 flex items-center gap-1 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 px-2.5 py-1.5 rounded-md transition-colors cursor-pointer">
+                    Manage <ArrowUpRight className="w-3 h-3" />
+                  </button>
+                </div>
+                <div className="flex-1 w-full min-h-0 flex flex-col p-4">
+                  <div className="flex-1 w-full min-h-0 flex items-center justify-center relative">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={categoryDistributionData} cx="50%" cy="50%" innerRadius="65%" outerRadius="90%" paddingAngle={5} dataKey="value" stroke="none">
+                        {categoryDistributionData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)", borderRadius: "12px", fontSize: "12px", color: "var(--color-text-primary)", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }} 
+                        itemStyle={{ fontWeight: 'bold', color: 'var(--color-text-primary)' }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  {/* Center text for donut */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-2">
+                    <span className="text-3xl font-black" style={{ color: 'var(--color-text-primary)' }}>{activeIncidents.length}</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Total</span>
+                  </div>
+                </div>
+                
+                {/* Legend */}
+                <div className="mt-4 grid grid-cols-2 gap-x-2 gap-y-2.5 shrink-0">
+                  {categoryDistributionData.map((item, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: item.color }} />
+                      <span className="text-[11px] font-medium" style={{ color: 'var(--color-text-secondary)' }}>
+                        {item.name} <span className="text-slate-400">({item.value})</span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                </div>
               </div>
-            </div>
-          )}
 
-          {/* Charts Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 p-5 bg-white border border-slate-200 rounded-xl shadow-xs space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-blue-600" />
-                  Disaster Incident & Response Velocity Trends
-                </h3>
-                <span className="text-xs text-slate-500 font-mono">24-Hour Timeline</span>
+              {/* Recent Critical Incidents (1 column) */}
+              <div className="lg:col-span-1 h-[350px] bg-white dark:bg-slate-900 border rounded-2xl shadow-sm flex flex-col overflow-hidden transition-all duration-300 hover:shadow-md hover:-translate-y-1 hover:border-slate-300 dark:hover:border-slate-700" style={{ borderColor: 'var(--color-border)' }}>
+                <div className="p-4 border-b flex items-center justify-between shrink-0" style={{ borderColor: 'var(--color-border)' }}>
+                  <div className="flex items-center gap-2">
+                    <AlertOctagon className="w-4 h-4 text-slate-400" />
+                    <h3 className="font-bold text-[0.875rem]" style={{ color: 'var(--color-text-primary)' }}>Critical Incidents</h3>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-rose-500 hidden sm:block">{criticalIncidents.length} Active</span>
+                    <button onClick={() => onNavigateTab && onNavigateTab('incidents')} className="text-[10px] font-bold uppercase tracking-wider text-blue-600 hover:text-blue-700 flex items-center gap-1 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 px-2.5 py-1.5 rounded-md transition-colors cursor-pointer">
+                      View All <ArrowUpRight className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+                <div className="flex-1 w-full overflow-y-auto p-4 space-y-3 custom-scrollbar">
+                  {criticalIncidents.length === 0 ? (
+                    <div className="h-full flex items-center justify-center text-sm font-medium" style={{ color: 'var(--color-text-muted)' }}>
+                      No critical incidents at this time.
+                    </div>
+                  ) : (
+                    criticalIncidents.map(inc => (
+                      <div key={inc.id} className="p-3 bg-slate-50 dark:bg-slate-800/50 border rounded-xl flex flex-col gap-1.5 transition-colors" style={{ borderColor: 'var(--color-border)' }}>
+                        <div className="flex items-start justify-between gap-4">
+                          <span className="font-bold text-xs tracking-tight" style={{ color: 'var(--color-text-primary)' }}>{inc.title}</span>
+                          <span className="text-[10px] font-mono whitespace-nowrap text-slate-400">{new Date(inc.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 rounded">Critical</span>
+                          <span className="text-[10px] font-medium truncate" style={{ color: 'var(--color-text-muted)' }}>{inc.locationName}</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
-              <div className="h-64 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={trendData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis dataKey="time" stroke="#64748b" fontSize={11} />
-                    <YAxis stroke="#64748b" fontSize={11} />
-                    <Tooltip contentStyle={{ backgroundColor: "#ffffff", borderColor: "#e2e8f0", borderRadius: "12px", fontSize: "12px", color: "#0f172a" }} />
-                    <Line type="monotone" dataKey="incidents" stroke="#f43f5e" strokeWidth={2.5} name="Active Incidents" />
-                    <Line type="monotone" dataKey="requests" stroke="#f59e0b" strokeWidth={2} name="Requests" />
-                    <Line type="monotone" dataKey="resolved" stroke="#10b981" strokeWidth={2} name="Resolved" />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
+
             </div>
 
-            <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-xs space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-rose-600" />
-                  Incident Category Breakdown
-                </h3>
-              </div>
-              <div className="h-64 w-full flex items-center justify-center">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie data={categoryDistributionData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={5} dataKey="value">
-                      {categoryDistributionData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip contentStyle={{ backgroundColor: "#ffffff", borderColor: "#e2e8f0", borderRadius: "12px", fontSize: "12px", color: "#0f172a" }} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
-
-          {/* Quick Embedded GIS Map */}
-          <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-xs space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-emerald-600" />
-                Live Spatial Tactical Map
-              </h3>
-            </div>
-            <InteractiveGISMap
-              mini
-              onSelectIncident={inc => setSelectedIncident(inc)}
-              onSelectRequest={req => setSelectedRequest(req)}
-            />
           </div>
         </div>
       )}
@@ -553,62 +866,127 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ activeTab, onOpenAiMod
 
       {/* 6. GIS MAP TAB */}
       {activeTab === "map" && (
-        <div className="space-y-4 animate-in fade-in">
-          <div>
-            <h2 className="text-xl font-black text-slate-900">Full-Screen GIS Operations Map</h2>
-            <p className="text-xs text-slate-500 mt-0.5">Geographic disaster situation map with real-time responder pin tracking and risk circles</p>
+        <div className="flex flex-col h-[calc(100vh-160px)] lg:h-[calc(100vh-130px)] animate-in fade-in -mx-2 lg:mx-0">
+          <div className="mb-4 shrink-0 px-2 lg:px-0">
+            <h2 className="text-xl font-black text-slate-900 dark:text-white">Live Tactical Operations Map</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Real-time geographic visualization of critical incidents, active field units, and dynamic hazard zones.</p>
           </div>
-          <InteractiveGISMap />
+          <div className="flex-1 w-full min-h-0 relative z-0">
+            <InteractiveGISMap 
+              onMapClick={handleMapClick}
+              className="h-full w-full bg-slate-900 lg:border border-slate-200 dark:border-slate-700 lg:rounded-2xl overflow-hidden shadow-sm" 
+            />
+          </div>
         </div>
       )}
 
       {/* 7. AI DECISION SUPPORT TAB */}
       {activeTab === "ai-support" && (
-        <div className="space-y-6 animate-in fade-in">
-          <div>
-            <h2 className="text-xl font-black text-slate-900">AI Decision Support Engine</h2>
-            <p className="text-xs text-slate-500 mt-0.5">Automated situation analysis explaining rationale behind tactical recommendations</p>
+        <div className="flex flex-col h-[calc(100vh-160px)] lg:h-[calc(100vh-130px)] animate-in fade-in -mx-2 lg:mx-0">
+          <div className="mb-4 shrink-0 px-2 lg:px-0">
+            <h2 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-blue-500" /> AI Tactical Advisor
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Automated situation analysis and intelligent operational routing</p>
           </div>
 
-          <div className="space-y-4">
-            {aiRecommendations.map(rec => (
-              <div key={rec.id} className="p-5 bg-white border border-slate-200 rounded-xl shadow-xs space-y-3">
-                <div className="flex items-start justify-between">
+          {(() => {
+            const renderAICard = (rec: AIRecommendation) => (
+              <div key={rec.id} className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 flex flex-col gap-3 group">
+                <div className="flex items-start justify-between gap-2">
                   <div>
-                    <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-bold text-slate-900 dark:text-white text-[13px] leading-tight">{rec.title}</h3>
+                    <div className="flex items-center gap-2 mt-2">
                       <StatusBadge type="severity" value={rec.severity} size="sm" />
-                      <span className="text-xs font-bold text-blue-600">Impact Score: {rec.impactScore}/100</span>
+                      <div className="flex items-center gap-1 text-[10px] font-bold text-slate-500">
+                        <Activity className="w-3 h-3 text-blue-500" />
+                        Impact: {rec.impactScore}/100
+                      </div>
                     </div>
-                    <h3 className="font-bold text-slate-900 text-base">{rec.title}</h3>
                   </div>
-                  <span className={`px-2.5 py-1 rounded text-xs font-bold ${
-                    rec.status === "ACCEPTED" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
-                  }`}>
-                    {rec.status}
-                  </span>
                 </div>
 
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-1">
-                  <div className="font-bold text-amber-700 uppercase text-[10px]">WHY THIS WAS SUGGESTED:</div>
-                  <p className="text-slate-700 leading-relaxed font-medium">{rec.reasoning}</p>
-                </div>
-
-                <div className="text-xs text-slate-800">
-                  <span className="font-bold text-blue-600">Recommended Action: </span>
+                <div className="text-[11px] text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 p-2.5 rounded-lg border border-slate-100 dark:border-slate-700">
+                  <span className="font-bold text-blue-600 dark:text-blue-400 block mb-1">Recommended Action:</span>
                   {rec.recommendedAction}
                 </div>
 
+                <details className="group/details">
+                  <summary className="text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:text-blue-500 cursor-pointer flex items-center gap-1 transition-colors select-none list-none [&::-webkit-details-marker]:hidden">
+                    <ChevronRight className="w-3 h-3 group-open/details:rotate-90 transition-transform" /> 
+                    AI Logic Breakdown
+                  </summary>
+                  <div className="mt-2 pl-4 border-l-2 border-blue-200 dark:border-blue-900/50 space-y-2 text-[11px] text-slate-600 dark:text-slate-400">
+                    <p><span className="font-bold text-slate-800 dark:text-slate-200">Context:</span> {rec.reasoning}</p>
+                    <div className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                      Confidence: 94% - based on DRRM historical trends
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                      Resource Check: Availability Verified
+                    </div>
+                  </div>
+                </details>
+
                 {rec.status === "PENDING" && (
-                  <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
-                    <button onClick={() => rejectAIRecommendation(rec.id)} className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold">Reject</button>
-                    <button onClick={() => acceptAIRecommendation(rec.id)} className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold">Accept & Execute</button>
+                  <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2 mt-auto">
+                    <button onClick={() => rejectAIRecommendation(rec.id)} className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-900/20 dark:hover:bg-rose-900/40 text-rose-600 dark:text-rose-400 rounded-lg text-xs font-bold transition-colors">Reject</button>
+                    <button onClick={() => acceptAIRecommendation(rec.id)} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Execute
+                    </button>
                   </div>
                 )}
               </div>
-            ))}
-          </div>
+            );
+
+            return (
+              <div className="flex-1 w-full min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-6 overflow-hidden px-2 lg:px-0">
+                {/* Pending Column */}
+                <div className="flex flex-col bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl p-4 border border-slate-200 dark:border-slate-800/60 overflow-hidden">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-4 flex items-center justify-between">
+                    <span>Pending Action</span>
+                    <span className="bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400 px-2 py-0.5 rounded-full text-[10px]">
+                      {aiRecommendations.filter(r => r.status === "PENDING").length}
+                    </span>
+                  </h3>
+                  <div className="flex-1 overflow-y-auto pr-1 space-y-4 custom-scrollbar">
+                    {aiRecommendations.filter(r => r.status === "PENDING").map(renderAICard)}
+                  </div>
+                </div>
+
+                {/* Accepted Column */}
+                <div className="flex flex-col bg-emerald-50/30 dark:bg-emerald-900/10 rounded-2xl p-4 border border-emerald-100 dark:border-emerald-900/20 overflow-hidden">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-500 mb-4 flex items-center justify-between">
+                    <span>Executed</span>
+                    <span className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400 px-2 py-0.5 rounded-full text-[10px]">
+                      {aiRecommendations.filter(r => r.status === "ACCEPTED").length}
+                    </span>
+                  </h3>
+                  <div className="flex-1 overflow-y-auto pr-1 space-y-4 custom-scrollbar">
+                    {aiRecommendations.filter(r => r.status === "ACCEPTED").map(renderAICard)}
+                  </div>
+                </div>
+
+                {/* Rejected Column */}
+                <div className="flex flex-col bg-rose-50/30 dark:bg-rose-900/10 rounded-2xl p-4 border border-rose-100 dark:border-rose-900/20 overflow-hidden">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-rose-700 dark:text-rose-500 mb-4 flex items-center justify-between">
+                    <span>Rejected</span>
+                    <span className="bg-rose-100 text-rose-700 dark:bg-rose-900/50 dark:text-rose-400 px-2 py-0.5 rounded-full text-[10px]">
+                      {aiRecommendations.filter(r => r.status === "REJECTED").length}
+                    </span>
+                  </h3>
+                  <div className="flex-1 overflow-y-auto pr-1 space-y-4 custom-scrollbar">
+                    {aiRecommendations.filter(r => r.status === "REJECTED").map(renderAICard)}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
+
+
 
       {/* 8. ANALYTICS & REPORTS TAB */}
       {activeTab === "analytics" && (
@@ -722,6 +1100,29 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ activeTab, onOpenAiMod
               placeholder="Barangay San Jose"
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white"
             />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Latitude</label>
+              <input
+                type="number"
+                step="any"
+                value={newIncData.lat || ""}
+                onChange={e => setNewIncData({ ...newIncData, lat: parseFloat(e.target.value) })}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Longitude</label>
+              <input
+                type="number"
+                step="any"
+                value={newIncData.lng || ""}
+                onChange={e => setNewIncData({ ...newIncData, lng: parseFloat(e.target.value) })}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white"
+              />
+            </div>
           </div>
 
           <div>

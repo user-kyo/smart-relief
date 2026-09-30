@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Siren,
   LifeBuoy,
@@ -101,10 +101,10 @@ export const CitizenPortal: React.FC<CitizenPortalProps> = ({ activeTab, onSelec
     setCreatedReqId(newReq.id);
   };
 
-  const filteredCenters = evacuationCenters.filter(c =>
+  const filteredCenters = useMemo(() => evacuationCenters.filter(c =>
     c.name.toLowerCase().includes(centerSearch.toLowerCase()) ||
     c.barangay.toLowerCase().includes(centerSearch.toLowerCase())
-  );
+  ), [evacuationCenters, centerSearch]);
 
   return (
     <div className="space-y-6">

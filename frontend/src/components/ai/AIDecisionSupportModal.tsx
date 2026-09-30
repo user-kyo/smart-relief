@@ -231,7 +231,7 @@ export const AIDecisionSupportModal: React.FC<AIDecisionSupportModalProps> = ({
       {/* Tab 2: AI Scenario Query Chat */}
       {activeTab === "chat" && (
         <div className="flex flex-col h-[400px] pt-2">
-          <div className="flex-1 overflow-y-auto space-y-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+          <div className="flex-1 overflow-y-auto space-y-3 p-3 pr-2 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl custom-scrollbar">
             {chatHistory.map((msg, idx) => (
               <div
                 key={idx}

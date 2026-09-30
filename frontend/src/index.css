@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
 
 /* Make the `dark:` variant follow the `.dark` class toggled by ThemeContext,
@@ -23,7 +23,7 @@
    ─────────────────────────────────────── */
 
 :root {
-  --color-bg: #F9FAFB;
+  --color-bg: #F4F7FA;
   --color-surface: #FFFFFF;
   --color-surface-secondary: #F3F4F6;
   --color-surface-hover: #F9FAFB;
@@ -297,19 +297,19 @@
   color: #FFFFFF !important;
 }
 
-/* Scrollbar styling for dark mode */
-.dark ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+/* Global Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
-.dark ::-webkit-scrollbar-track {
-  background: var(--color-surface);
+::-webkit-scrollbar-track {
+  background: transparent;
 }
-.dark ::-webkit-scrollbar-thumb {
+::-webkit-scrollbar-thumb {
   background: var(--color-border);
   border-radius: 4px;
 }
-.dark ::-webkit-scrollbar-thumb:hover {
+::-webkit-scrollbar-thumb:hover {
   background: var(--color-text-faint);
 }
 

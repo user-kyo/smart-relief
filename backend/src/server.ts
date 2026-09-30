@@ -3,6 +3,7 @@ import path from "path";
 import cors from "cors";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
+import authRoutes from "./routes/auth.routes";
 
 dotenv.config();
 
@@ -31,6 +32,10 @@ async function startServer() {
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
   });
+
+  // Auth Routes
+  app.use("/api/auth", authRoutes);
+
 
   // AI Decision Support Endpoint
   app.post("/api/ai/decision-support", async (req, res) => {

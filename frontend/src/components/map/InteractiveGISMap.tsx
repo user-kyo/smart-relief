@@ -19,11 +19,28 @@ import { useSmartRelief } from "../../context/SmartReliefContext";
 import { Incident, EvacuationCenter, Responder, AssistanceRequest } from "../../types";
 import { StatusBadge } from "../common/StatusBadge";
 
+import { useMapEvents } from "react-leaflet";
+
 interface GISMapProps {
   onSelectIncident?: (incident: Incident) => void;
   onSelectRequest?: (request: AssistanceRequest) => void;
+  onMapClick?: (lat: number, lng: number) => void;
   mini?: boolean;
+  hideLegend?: boolean;
+  className?: string;
 }
+
+const MapClickHandler = ({ onMapClick, isPinMode, setIsPinMode }: { onMapClick?: (lat: number, lng: number) => void; isPinMode: boolean; setIsPinMode: (val: boolean) => void; }) => {
+  useMapEvents({
+    click(e) {
+      if (isPinMode && onMapClick) {
+        onMapClick(e.latlng.lat, e.latlng.lng);
+        setIsPinMode(false);
+      }
+    },
+  });
+  return null;
+};
 
 // Custom Leaflet DivIcons using Tailwind
 const createIncidentIcon = (isCritical: boolean) => {
@@ -74,10 +91,13 @@ const createRequestIcon = () => {
 // We just use a fixed center for San Pablo City
 const CENTER: [number, number] = [14.0720, 121.3250];
 
-export const InteractiveGISMap: React.FC<GISMapProps> = ({
+export const InteractiveGISMap = React.memo<GISMapProps>(({
   onSelectIncident,
   onSelectRequest,
-  mini = false
+  onMapClick,
+  mini = false,
+  hideLegend = false,
+  className
 }) => {
   const {
     incidents,
@@ -93,6 +113,9 @@ export const InteractiveGISMap: React.FC<GISMapProps> = ({
   const [showRequests, setShowRequests] = useState(true);
   const [showHeatmap, setShowHeatmap] = useState(true);
 
+  // Pin Mode State
+  const [isPinMode, setIsPinMode] = useState(false);
+
   // Selected Pin for Popover Detail
   const [selectedPin, setSelectedPin] = useState<{
     type: "INCIDENT" | "RESPONDER" | "EVACUATION" | "REQUEST";
@@ -107,67 +130,89 @@ export const InteractiveGISMap: React.FC<GISMapProps> = ({
   const requestIcon = createRequestIcon();
 
   return (
-    <div className={`relative w-full ${mini ? 'h-[350px]' : 'h-[650px]'} bg-slate-900 border border-slate-200 rounded-xl overflow-hidden shadow-xs flex flex-col`}>
+    <div className={`relative w-full ${className || (mini ? 'h-[350px] bg-slate-900 border border-slate-200 rounded-xl overflow-hidden shadow-xs' : 'h-[650px] bg-slate-900 border border-slate-200 rounded-xl overflow-hidden shadow-xs')} flex flex-col`}>
       
-      {/* Top Map Toolbar Bar (Overlapping Map) */}
-      <div className="absolute top-4 left-4 right-16 z-[1000] flex flex-wrap items-center justify-between gap-3 pointer-events-none">
-        
-        {/* Layer Toggle Bar */}
-        <div className="pointer-events-auto bg-white/95 border border-slate-200 backdrop-blur-md p-1.5 rounded-xl shadow-md flex items-center gap-1 overflow-x-auto max-w-full">
-          <div className="text-[11px] font-bold text-slate-700 px-2 border-r border-slate-200 flex items-center gap-1.5">
-            <Layers className="w-3.5 h-3.5 text-blue-600" />
-            <span className="hidden sm:inline">Layers</span>
+      {/* Floating Tactical Layer Controls */}
+      <div className="absolute top-4 left-4 z-[1000] pointer-events-none">
+        <div className="pointer-events-auto bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl p-2.5 rounded-2xl shadow-xl border border-slate-200/50 dark:border-slate-700/50 w-[160px] flex flex-col gap-1 transition-all">
+          <div className="flex items-center gap-2 mb-1.5 px-1 pb-1.5 border-b border-slate-200/50 dark:border-slate-700/50">
+            <Layers className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">Map Layers</span>
           </div>
 
           <button
             onClick={() => setShowIncidents(!showIncidents)}
-            className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer ${
-              showIncidents ? "bg-rose-50 text-rose-800 border border-rose-200" : "text-slate-600 hover:text-slate-900"
-            }`}
+            className={`flex items-center justify-between p-1.5 rounded-xl transition-all cursor-pointer ${showIncidents ? 'bg-rose-50 dark:bg-rose-500/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
           >
-            <AlertOctagon className="w-3.5 h-3.5 text-rose-600" />
-            <span className="hidden sm:inline">Incidents ({incidents.length})</span>
+            <div className="flex items-center gap-2">
+              <div className={`p-1 rounded-lg ${showIncidents ? 'bg-rose-500 text-white shadow-sm shadow-rose-500/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
+                <AlertOctagon className="w-3 h-3" />
+              </div>
+              <span className={`text-[11px] font-bold ${showIncidents ? 'text-rose-700 dark:text-rose-400' : 'text-slate-500'}`}>Incidents</span>
+            </div>
+            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${showIncidents ? 'bg-rose-200/50 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400' : 'bg-slate-200 dark:bg-slate-700 text-slate-500'}`}>{incidents.length}</span>
           </button>
 
           <button
             onClick={() => setShowResponders(!showResponders)}
-            className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer ${
-              showResponders ? "bg-amber-50 text-amber-800 border border-amber-200" : "text-slate-600 hover:text-slate-900"
-            }`}
+            className={`flex items-center justify-between p-1.5 rounded-xl transition-all cursor-pointer ${showResponders ? 'bg-amber-50 dark:bg-amber-500/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
           >
-            <Users2 className="w-3.5 h-3.5 text-amber-600" />
-            <span className="hidden sm:inline">Responders ({responders.length})</span>
+            <div className="flex items-center gap-2">
+              <div className={`p-1 rounded-lg ${showResponders ? 'bg-amber-500 text-white shadow-sm shadow-amber-500/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
+                <Users2 className="w-3 h-3" />
+              </div>
+              <span className={`text-[11px] font-bold ${showResponders ? 'text-amber-700 dark:text-amber-400' : 'text-slate-500'}`}>Responders</span>
+            </div>
+            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${showResponders ? 'bg-amber-200/50 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' : 'bg-slate-200 dark:bg-slate-700 text-slate-500'}`}>{responders.length}</span>
           </button>
 
           <button
             onClick={() => setShowEvacuation(!showEvacuation)}
-            className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer ${
-              showEvacuation ? "bg-blue-50 text-blue-800 border border-blue-200" : "text-slate-600 hover:text-slate-900"
-            }`}
+            className={`flex items-center justify-between p-1.5 rounded-xl transition-all cursor-pointer ${showEvacuation ? 'bg-blue-50 dark:bg-blue-500/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
           >
-            <Home className="w-3.5 h-3.5 text-blue-600" />
-            <span className="hidden sm:inline">Evacuation ({evacuationCenters.length})</span>
+            <div className="flex items-center gap-2">
+              <div className={`p-1 rounded-lg ${showEvacuation ? 'bg-blue-500 text-white shadow-sm shadow-blue-500/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
+                <Home className="w-3 h-3" />
+              </div>
+              <span className={`text-[11px] font-bold ${showEvacuation ? 'text-blue-700 dark:text-blue-400' : 'text-slate-500'}`}>Evacuation</span>
+            </div>
+            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${showEvacuation ? 'bg-blue-200/50 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400' : 'bg-slate-200 dark:bg-slate-700 text-slate-500'}`}>{evacuationCenters.length}</span>
           </button>
 
           <button
             onClick={() => setShowRequests(!showRequests)}
-            className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer ${
-              showRequests ? "bg-emerald-50 text-emerald-800 border border-emerald-200" : "text-slate-600 hover:text-slate-900"
-            }`}
+            className={`flex items-center justify-between p-1.5 rounded-xl transition-all cursor-pointer ${showRequests ? 'bg-emerald-50 dark:bg-emerald-500/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
           >
-            <LifeBuoy className="w-3.5 h-3.5 text-emerald-600" />
-            <span className="hidden lg:inline">Requests ({assistanceRequests.length})</span>
+            <div className="flex items-center gap-2">
+              <div className={`p-1 rounded-lg ${showRequests ? 'bg-emerald-500 text-white shadow-sm shadow-emerald-500/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
+                <LifeBuoy className="w-3 h-3" />
+              </div>
+              <span className={`text-[11px] font-bold ${showRequests ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-500'}`}>Requests</span>
+            </div>
+            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${showRequests ? 'bg-emerald-200/50 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-slate-200 dark:bg-slate-700 text-slate-500'}`}>{assistanceRequests.length}</span>
           </button>
 
           <button
             onClick={() => setShowHeatmap(!showHeatmap)}
-            className={`px-2 py-1 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1 cursor-pointer ${
-              showHeatmap ? "bg-purple-50 text-purple-800 border border-purple-200" : "text-slate-600 hover:text-slate-900"
-            }`}
-            title="Toggle Hazard Zone Heatmap Overlay"
+            className={`flex items-center justify-between p-1.5 rounded-xl transition-all cursor-pointer ${showHeatmap ? 'bg-purple-50 dark:bg-purple-500/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
           >
-            {showHeatmap ? <Eye className="w-3.5 h-3.5 text-purple-600" /> : <EyeOff className="w-3.5 h-3.5 text-slate-400" />}
+            <div className="flex items-center gap-2">
+              <div className={`p-1 rounded-lg ${showHeatmap ? 'bg-purple-500 text-white shadow-sm shadow-purple-500/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
+                {showHeatmap ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+              </div>
+              <span className={`text-[11px] font-bold ${showHeatmap ? 'text-purple-700 dark:text-purple-400' : 'text-slate-500'}`}>Hazard Zones</span>
+            </div>
           </button>
+
+          {onMapClick && (
+            <button
+              onClick={() => setIsPinMode(!isPinMode)}
+              className={`flex items-center justify-center p-2 rounded-xl transition-all cursor-pointer font-bold text-xs mt-2 ${isPinMode ? 'bg-rose-600 text-white shadow-md shadow-rose-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
+            >
+              <MapPin className="w-3.5 h-3.5 mr-1.5" />
+              {isPinMode ? "Click Map to Pin" : "Drop Incident Pin"}
+            </button>
+          )}
         </div>
       </div>
 
@@ -175,14 +220,15 @@ export const InteractiveGISMap: React.FC<GISMapProps> = ({
         center={CENTER}
         zoom={14}
         zoomControl={false}
-        className="w-full h-full z-0 relative"
+        className={`w-full h-full z-0 relative ${isPinMode ? 'cursor-crosshair' : ''}`}
       >
+        <MapClickHandler onMapClick={onMapClick} isPinMode={isPinMode} setIsPinMode={setIsPinMode} />
         <ZoomControl position="topright" />
         
-        {/* OpenStreetMap Dark/CartoDB Dark Matter equivalent or just standard OSM */}
+        {/* Standard OpenStreetMap to avoid API key requirements */}
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
         {showHeatmap && (
@@ -325,25 +371,27 @@ export const InteractiveGISMap: React.FC<GISMapProps> = ({
       )}
 
       {/* Bottom Map Legend Footer */}
-      <div className="relative z-[1000] p-2 bg-white/95 border-t border-slate-200 text-[10px] text-slate-700 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-3 font-medium flex-wrap">
-          <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block" /> Critical
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" /> Responder
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block" /> Evacuation
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" /> Request
-          </span>
+      {!hideLegend && (
+        <div className="relative z-[1000] p-2 bg-white/95 border-t border-slate-200 text-[10px] text-slate-700 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-3 font-medium flex-wrap">
+            <span className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block" /> Critical
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" /> Responder
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block" /> Evacuation
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" /> Request
+            </span>
+          </div>
+          <div className="text-slate-500 font-mono font-medium hidden sm:block">
+            GIS Datum: WGS84
+          </div>
         </div>
-        <div className="text-slate-500 font-mono font-medium hidden sm:block">
-          GIS Datum: WGS84
-        </div>
-      </div>
+      )}
     </div>
   );
-};
+});

@@ -37,23 +37,11 @@ export const initialUsers: SystemUser[] = [
     lastActive: "Just now",
     avatarUrl: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80"
   },
-  {
-    id: "usr-003",
-    name: "Sgt. Mark Villareal",
-    email: "m.villareal@responder.drrm.ph",
-    phone: "+63 919 555 0303",
-    role: "RESPONDER",
-    status: "ACTIVE",
-    lguId: "lgu-101",
-    lguName: "Rescue Alpha Team",
-    skills: ["Water Rescue", "EMT Paramedic", "Heavy Rigging"],
-    lastActive: "1 min ago",
-    avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80"
-  },
+
   {
     id: "usr-004",
     name: "Ana Reyes",
-    email: "maria.cruz@gmail.com",
+    email: "ana.reyes@gmail.com",
     phone: "+63 920 555 0404",
     role: "CITIZEN",
     status: "ACTIVE",
@@ -627,23 +615,7 @@ export const initialRolePermissions: RolePermission[] = [
       systemLogsView: true
     }
   },
-  {
-    role: "RESPONDER",
-    description: "Field personnel and team leads with dispatch task execution, status updates, and field Requisitioning.",
-    permissions: {
-      incidentsCreate: true,
-      incidentsVerify: false,
-      incidentsAssign: false,
-      incidentsDelete: false,
-      requestsManage: false,
-      resourcesAdd: false,
-      resourcesTransfer: false,
-      evacuationManage: false,
-      usersManage: false,
-      rolesManage: false,
-      systemLogsView: false
-    }
-  },
+
   {
     role: "VOLUNTEER",
     description: "Assigned volunteer workers for shelter assistance, food pack distribution, and center registration.",
@@ -713,6 +685,17 @@ export const initialAIRecommendations: AIRecommendation[] = [
     category: "EVACUATION",
     targetId: "INC-2026-092",
     status: "PENDING"
+  },
+  {
+    id: "rec-004",
+    title: "Deploy Additional Medics to Sector 1",
+    reasoning: "Sector 1 triage center is reporting a slight increase in minor injuries. However, the nearby clinic still has available capacity.",
+    severity: "LOW",
+    recommendedAction: "Dispatch 2 additional EMT units from Central Hospital to Sector 1.",
+    impactScore: 45,
+    category: "DISPATCH",
+    targetId: "INC-2026-095",
+    status: "REJECTED"
   }
 ];
 

@@ -1,4 +1,4 @@
-export type UserRole = "SUPER_ADMIN" | "ADMIN" | "RESPONDER" | "VOLUNTEER" | "CITIZEN";
+export type UserRole = "SUPER_ADMIN" | "ADMIN" | "VOLUNTEER" | "CITIZEN";
 
 export type IncidentSeverity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
 export type IncidentStatus = "REPORTED" | "VERIFIED" | "ASSIGNED" | "RESPONDING" | "RESOLVED" | "CLOSED";

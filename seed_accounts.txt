@@ -1,0 +1,20 @@
+SMARTRELIEF SEED ACCOUNTS
+-------------------------
+Note: These accounts have been officially seeded into the database. 
+You MUST use the exact password below to log in.
+
+[ SUPER ADMIN ]
+Email: roberto.mendoza@drrm.gov.ph
+Password: password123
+
+[ ADMIN ]
+Email: elena.santos@manila.gov.phadd
+Password: password123
+
+[ VOLUNTEER ]
+Email: j.delacruz@redcross.org.ph
+Password: password123
+
+[ CITIZEN ]
+Email: ana.reyes@gmail.com
+Password: password123

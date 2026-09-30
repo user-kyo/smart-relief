@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { AlertOctagon, Plus, FileText, X } from "lucide-react";
 import { useSmartRelief } from "../../../context/SmartReliefContext";
 import { StatusBadge } from "../../common/StatusBadge";
@@ -120,8 +120,8 @@ export const IncidentManagementTab: React.FC<{
   setSelectedIncident
 }) => {
   const [incFilterSeverity, setIncFilterSeverity] = useState("ALL");
-  const filteredIncidents = incidents.filter(i => incFilterSeverity === "ALL" || i.severity === incFilterSeverity);
-  const availableResponders = responders.filter(r => r.status === "AVAILABLE");
+  const filteredIncidents = useMemo(() => incidents.filter(i => incFilterSeverity === "ALL" || i.severity === incFilterSeverity), [incidents, incFilterSeverity]);
+  const availableResponders = useMemo(() => responders.filter(r => r.status === "AVAILABLE"), [responders]);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
   const [activeId, setActiveId] = useState<string | null>(null);

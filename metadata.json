@@ -1,6 +1,0 @@
-{
-  "name": "SmartRelief Disaster Coordination System",
-  "description": "AI-Powered Disaster Resource Coordination and Decision Support System featuring Super Admin, LGU-DRRM Admin, Responder, and Citizen role portals.",
-  "requestFramePermissions": ["geolocation"],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}

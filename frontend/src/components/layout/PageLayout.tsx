@@ -43,7 +43,7 @@ export function PageLayout({
           onToggleSidebar={onToggleSidebar}
         />
         <div className="flex-1 flex flex-col h-full overflow-hidden">
-          <Header title={title} onOpenAiModal={onOpenAiModal} onToggleSidebar={onToggleSidebar} />
+          <Header title={title} activeTab={activeTab} onOpenAiModal={onOpenAiModal} onToggleSidebar={onToggleSidebar} />
           <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 flex flex-col">
             <AnimatePresence mode="wait">
               <motion.div

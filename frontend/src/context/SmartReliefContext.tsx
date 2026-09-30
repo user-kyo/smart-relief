@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useMemo } from "react";
 import {
   UserRole,
   SystemUser,
@@ -47,6 +47,17 @@ interface SmartReliefContextType {
   aiRecommendations: AIRecommendation[];
   alerts: EmergencyAlert[];
   isAiLoading: boolean;
+  
+  // Auth
+  isAuthenticated: boolean;
+  login: (email: string, password?: string) => Promise<{success: boolean, message?: string}>;
+  register: (name: string, email: string, password: string, role: string) => Promise<{success: boolean, message?: string, status?: string}>;
+  checkEmail: (email: string) => Promise<boolean>;
+  forgotPassword: (email: string) => Promise<boolean>;
+  verifyOtp: (email: string, otp: string) => Promise<boolean>;
+  resetPassword: (email: string, otp: string, newPassword: string) => Promise<boolean>;
+  loginAsGuest: () => void;
+  logout: () => void;
   
   // Handlers
   setRole: (role: UserRole) => void;
@@ -116,6 +127,7 @@ export const SmartReliefProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [aiRecommendations, setAiRecommendations] = useState<AIRecommendation[]>(() => getStored("ai_recs", initialAIRecommendations));
   const [alerts, setAlerts] = useState<EmergencyAlert[]>(() => getStored("alerts", initialAlerts));
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => getStored("isAuthenticated", false));
 
   // Sync to local storage on changes
   useEffect(() => setStored("role", currentRole), [currentRole]);
@@ -130,8 +142,132 @@ export const SmartReliefProvider: React.FC<{ children: React.ReactNode }> = ({ c
   useEffect(() => setStored("permissions", rolePermissions), [rolePermissions]);
   useEffect(() => setStored("ai_recs", aiRecommendations), [aiRecommendations]);
   useEffect(() => setStored("alerts", alerts), [alerts]);
+  useEffect(() => setStored("isAuthenticated", isAuthenticated), [isAuthenticated]);
 
   const currentUser = users.find(u => u.role === currentRole) || users[0];
+
+  const login = async (email: string, password?: string): Promise<{success: boolean, message?: string}> => {
+    try {
+      const res = await fetch("http://localhost:3000/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        let roleToSet = data.user.role;
+        if (roleToSet === 'RESIDENT') roleToSet = 'CITIZEN';
+        setCurrentRole(roleToSet as UserRole);
+        setIsAuthenticated(true);
+        localStorage.setItem("smartrelief_token", data.token);
+        return { success: true };
+      }
+      return { success: false, message: data.message };
+    } catch (e) {
+      console.error(e);
+      return { success: false, message: "Network error occurred." };
+    }
+  };
+
+  const register = async (name: string, email: string, password: string, role: string): Promise<{success: boolean, message?: string, status?: string}> => {
+    try {
+      let backendRole = role;
+      if (backendRole === 'CITIZEN') backendRole = 'RESIDENT';
+      const res = await fetch("http://localhost:3000/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password, role: backendRole }),
+      });
+      const data = await res.json();
+      
+      if (data.success && data.user) {
+        const newUserObj: SystemUser = {
+          id: data.user.id || Math.random().toString(36).substr(2, 9),
+          name: data.user.name,
+          email: data.user.email,
+          phone: "Not provided",
+          role: data.user.role === 'RESIDENT' ? 'CITIZEN' : data.user.role,
+          status: data.user.status === 'APPROVED' ? 'ACTIVE' : data.user.status
+        };
+        setUsers(prev => [...prev, newUserObj]);
+      }
+
+      return { success: data.success, message: data.message, status: data.user?.status };
+    } catch (e) {
+      console.error(e);
+      return { success: false, message: 'Network error occurred.' };
+    }
+  };
+
+  const checkEmail = async (email: string): Promise<boolean> => {
+    try {
+      const res = await fetch("http://localhost:3000/api/auth/check-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      return data.success && data.exists;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
+  };
+
+  const forgotPassword = async (email: string): Promise<boolean> => {
+    try {
+      const res = await fetch("http://localhost:3000/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      return data.success;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
+  };
+
+  const verifyOtp = async (email: string, otp: string): Promise<boolean> => {
+    try {
+      const res = await fetch("http://localhost:3000/api/auth/verify-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, otp }),
+      });
+      const data = await res.json();
+      return data.success;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
+  };
+
+  const resetPassword = async (email: string, otp: string, newPassword: string): Promise<boolean> => {
+    try {
+      const res = await fetch("http://localhost:3000/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, otp, newPassword }),
+      });
+      const data = await res.json();
+      return data.success;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
+  };
+
+  const loginAsGuest = () => {
+    // A guest doesn't need a formal account, they just view the portal as a CITIZEN.
+    setCurrentRole("CITIZEN");
+    setIsAuthenticated(true);
+  };
+
+  const logout = () => {
+    setIsAuthenticated(false);
+  };
 
   const setRole = (role: UserRole) => {
     setCurrentRole(role);
@@ -534,8 +670,24 @@ export const SmartReliefProvider: React.FC<{ children: React.ReactNode }> = ({ c
     addLog("USER_ROLE_CHANGED", `Updated user ${userId} role to ${role}`, "SECURITY");
   };
 
-  const toggleUserStatus = (userId: string) => {
-    setUsers(prev => prev.map(u => u.id === userId ? { ...u, status: u.status === "ACTIVE" ? "INACTIVE" : "ACTIVE" } : u));
+  const toggleUserStatus = async (userId: string) => {
+    const user = users.find(u => u.id === userId);
+    if (!user) return;
+    
+    const newStatusFrontend = user.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
+    const newStatusBackend = newStatusFrontend === "ACTIVE" ? "APPROVED" : "PENDING";
+    
+    try {
+      await fetch(`http://localhost:3000/api/auth/users/${userId}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatusBackend })
+      });
+    } catch (e) {
+      console.error("Failed to update user status in backend", e);
+    }
+    
+    setUsers(prev => prev.map(u => u.id === userId ? { ...u, status: newStatusFrontend } : u));
   };
 
   // Role Permissions
@@ -580,49 +732,61 @@ export const SmartReliefProvider: React.FC<{ children: React.ReactNode }> = ({ c
     addLog("SYSTEM_RESET", "Reset all system data to factory default demonstration state.", "WARNING");
   };
 
+  const contextValue = useMemo(() => ({
+    currentRole,
+    currentUser,
+    users,
+    incidents,
+    assistanceRequests,
+    resources,
+    evacuationCenters,
+    responders,
+    lgus,
+    systemLogs,
+    rolePermissions,
+    aiRecommendations,
+    alerts,
+    isAiLoading,
+    setRole,
+    createIncident,
+    verifyIncident,
+    assignResponderToIncident,
+    updateIncidentStatus,
+    createAssistanceRequest,
+    updateRequestStatus,
+    addResource,
+    updateResourceStock,
+    transferResource,
+    updateEvacuationOccupancy,
+    updateEvacuationStatus,
+    updateResponderStatus,
+    acceptAIRecommendation,
+    rejectAIRecommendation,
+    fetchAIRecommendations,
+    addUser,
+    updateUserRole,
+    toggleUserStatus,
+    updateRolePermissions,
+    addAlert,
+    toggleAlertStatus,
+    addLog,
+    resetToDefaultData,
+    isAuthenticated,
+    login,
+    register,
+    forgotPassword,
+    verifyOtp,
+    resetPassword,
+    loginAsGuest,
+    logout
+  }), [
+    currentRole, currentUser, users, incidents, assistanceRequests, resources,
+    evacuationCenters, responders, lgus, systemLogs, rolePermissions, aiRecommendations,
+    alerts, isAiLoading, isAuthenticated
+  ]);
+
   return (
-    <SmartReliefContext.Provider
-      value={{
-        currentRole,
-        currentUser,
-        users,
-        incidents,
-        assistanceRequests,
-        resources,
-        evacuationCenters,
-        responders,
-        lgus,
-        systemLogs,
-        rolePermissions,
-        aiRecommendations,
-        alerts,
-        isAiLoading,
-        setRole,
-        createIncident,
-        verifyIncident,
-        assignResponderToIncident,
-        updateIncidentStatus,
-        createAssistanceRequest,
-        updateRequestStatus,
-        addResource,
-        updateResourceStock,
-        transferResource,
-        updateEvacuationOccupancy,
-        updateEvacuationStatus,
-        updateResponderStatus,
-        acceptAIRecommendation,
-        rejectAIRecommendation,
-        fetchAIRecommendations,
-        addUser,
-        updateUserRole,
-        toggleUserStatus,
-        updateRolePermissions,
-        addAlert,
-        toggleAlertStatus,
-        addLog,
-        resetToDefaultData
-      }}
-    >
+    <SmartReliefContext.Provider value={contextValue}>
       {children}
     </SmartReliefContext.Provider>
   );
