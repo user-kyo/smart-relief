@@ -105,7 +105,7 @@ export const Header: React.FC<HeaderProps> = ({ title, activeTab, onToggleSideba
       case 'SUPER_ADMIN': return 'National Command';
       case 'ADMIN': return 'BDRRMC (Manila)';
       case 'RESPONDER': return 'Field Unit Alpha';
-      case 'VOLUNTEER': return 'Red Cross HQ';
+
       default: return 'Public Guest';
     }
   };
@@ -135,7 +135,7 @@ export const Header: React.FC<HeaderProps> = ({ title, activeTab, onToggleSideba
       case 'assignments':
       case 'field-report':
       case 'resource-requisition':
-      case 'volunteer-tasks':
+      case 'responder-schedule':
         return 'Field Operations';
       case 'citizen-home':
       case 'alerts':

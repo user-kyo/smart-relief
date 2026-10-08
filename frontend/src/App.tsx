@@ -27,7 +27,6 @@ function MainContent() {
         setActiveTab("dashboard");
         break;
       case "RESPONDER":
-      case "VOLUNTEER":
         setActiveTab("field-dashboard");
         break;
       case "CITIZEN":
@@ -60,7 +59,7 @@ function MainContent() {
       case 'assignments': return 'My Assignments';
       case 'field-report': return 'Submit Field Report';
       case 'resource-requisition': return 'Resource Requisition';
-      case 'volunteer-tasks': return 'Available Tasks';
+      case 'responder-schedule': return 'Available Tasks';
       case 'citizen-home': return 'Emergency Services';
       case 'alerts': return 'Public Alerts';
       case 'report-incident': return 'Report an Incident';
@@ -72,7 +71,7 @@ function MainContent() {
   };
   const title = getPageTitle(activeTab, currentRole);
 
-  const isMobileRole = currentRole === "RESPONDER" || currentRole === "VOLUNTEER" || currentRole === "CITIZEN";
+  const isMobileRole = currentRole === "RESPONDER" || currentRole === "CITIZEN";
 
   const renderContent = () => (
     <>
@@ -82,7 +81,7 @@ function MainContent() {
           : <AdminPortal activeTab={activeTab} onOpenAiModal={() => setIsAiModalOpen(true)} onNavigateTab={setActiveTab} />
       )}
       {currentRole === "ADMIN" && <AdminPortal activeTab={activeTab} onOpenAiModal={() => setIsAiModalOpen(true)} onNavigateTab={setActiveTab} />}
-      {(currentRole === "RESPONDER" || currentRole === "VOLUNTEER") && <ResponderPortal activeTab={activeTab} />}
+      {currentRole === "RESPONDER" && <ResponderPortal activeTab={activeTab} />}
       {currentRole === "CITIZEN" && <CitizenPortal activeTab={activeTab} onSelectTab={tabId => setActiveTab(tabId)} />}
     </>
   );

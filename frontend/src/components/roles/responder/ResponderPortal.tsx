@@ -159,7 +159,7 @@ export const ResponderPortal: React.FC<ResponderPortalProps> = ({ activeTab }) =
                           <div className="text-sm font-black text-slate-900">{inc.locationName}</div>
                           <div className="text-[10px] text-emerald-600 font-bold mt-1 tracking-widest flex items-center gap-1">
                             <Navigation className="w-3 h-3" />
-                            GPS: 14.0720, 121.3250
+                            GPS: 14.1134, 121.3938
                           </div>
                         </div>
                       </div>
@@ -376,11 +376,11 @@ export const ResponderPortal: React.FC<ResponderPortalProps> = ({ activeTab }) =
         </div>
       )}
 
-      {/* 5. VOLUNTEER TASKS TAB */}
-      {activeTab === "volunteer-tasks" && (
+      {/* 5. RESPONDER TASKS TAB */}
+      {activeTab === "responder-schedule" && (
         <div className="space-y-6 animate-in fade-in">
           <div>
-            <h2 className="text-xl font-black text-slate-900">Volunteer Duty Schedule & Shift Roster</h2>
+            <h2 className="text-xl font-black text-slate-900">Responder Duty Schedule & Shift Roster</h2>
             <p className="text-xs text-slate-500 mt-0.5">Check shift assignment times and duty locations</p>
           </div>
 

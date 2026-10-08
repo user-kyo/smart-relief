@@ -301,7 +301,7 @@ export const CitizenPortal: React.FC<CitizenPortalProps> = ({ activeTab, onSelec
 
                 <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs flex items-center justify-between">
                   <span className="text-slate-500 font-medium">Automatic GPS Coordinates:</span>
-                  <span className="font-mono text-emerald-700 font-bold">14.0720° N, 121.3250° E</span>
+                  <span className="font-mono text-emerald-700 font-bold">14.1134° N, 121.3938° E</span>
                 </div>
 
                 <div className="pt-4 flex justify-between">

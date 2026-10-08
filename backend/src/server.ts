@@ -1,9 +1,12 @@
 import express from "express";
 import path from "path";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
+import { z } from "zod";
 import authRoutes from "./routes/auth.routes";
+import usersRoutes from "./routes/users.routes";
 
 dotenv.config();
 
@@ -11,7 +14,8 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use(cors());
+  app.use(cors({ origin: "http://localhost:5173", credentials: true }));
+  app.use(cookieParser());
   app.use(express.json({ limit: "10mb" }));
 
   // Initialize Gemini AI client if API key exists
@@ -35,12 +39,19 @@ async function startServer() {
 
   // Auth Routes
   app.use("/api/auth", authRoutes);
+  app.use("/api/users", usersRoutes);
 
+
+  const decisionSupportSchema = z.object({
+    incidentContext: z.array(z.any()).optional(),
+    resourceContext: z.array(z.any()).optional(),
+    prompt: z.string().optional()
+  });
 
   // AI Decision Support Endpoint
   app.post("/api/ai/decision-support", async (req, res) => {
     try {
-      const { incidentContext, resourceContext, prompt } = req.body;
+      const { incidentContext, resourceContext, prompt } = decisionSupportSchema.parse(req.body);
 
       if (!ai) {
         return res.json({
@@ -116,6 +127,7 @@ Custom Focus Prompt: ${prompt || "Analyze all active critical incidents and sugg
         ...parsed
       });
     } catch (error: any) {
+      if (error instanceof z.ZodError) return res.status(400).json({ success: false, message: error.errors[0].message });
       console.error("AI Decision Support Error:", error);
       return res.status(500).json({
         success: false,
@@ -124,10 +136,15 @@ Custom Focus Prompt: ${prompt || "Analyze all active critical incidents and sugg
     }
   });
 
+  const aiQuerySchema = z.object({
+    userQuery: z.string(),
+    context: z.any().optional()
+  });
+
   // AI Strategic Query Assistant Endpoint
   app.post("/api/ai/query", async (req, res) => {
     try {
-      const { userQuery, context } = req.body;
+      const { userQuery, context } = aiQuerySchema.parse(req.body);
 
       if (!ai) {
         return res.json({
@@ -152,6 +169,7 @@ User Question: ${userQuery}`,
         answer: response.text
       });
     } catch (error: any) {
+      if (error instanceof z.ZodError) return res.status(400).json({ success: false, message: error.errors[0].message });
       console.error("AI Query Error:", error);
       return res.status(500).json({
         success: false,

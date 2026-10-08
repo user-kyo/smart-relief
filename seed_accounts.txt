@@ -4,17 +4,30 @@ Note: These accounts have been officially seeded into the database.
 You MUST use the exact password below to log in.
 
 [ SUPER ADMIN ]
-Email: roberto.mendoza@drrm.gov.ph
+Email: sadmin@email.com
 Password: password123
 
 [ ADMIN ]
-Email: elena.santos@manila.gov.phadd
+Email: admin@email.com
 Password: password123
 
-[ VOLUNTEER ]
-Email: j.delacruz@redcross.org.ph
+[ RESPONDER ]
+Email: responder@email.com
 Password: password123
+
 
 [ CITIZEN ]
-Email: ana.reyes@gmail.com
+Email: citizen@email.com
 Password: password123
+
+-------------------------
+[ SEED OTP ]
+For testing the 'Forgot Password' flow without an email service, use:
+OTP: 123456
+
+-------------------------
+[ DEVELOPER SEED (REGISTRATION & LOGIN) ]
+Input any of these in the "Full Name" field during registration OR the "Email Address" field during login (no other fields required) to instantly test success modals or login as the seed account:
+- admintest (it should show the approval pending modal)
+- respondertest (it should show the approval pending modal)
+- citizentest (nothing)

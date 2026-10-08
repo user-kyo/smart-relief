@@ -120,14 +120,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
         ];
 
       case "RESPONDER":
-      case "VOLUNTEER":
         return [
           { id: "field-dashboard", label: "Field Dashboard", icon: LayoutDashboard },
           { id: "tactical-map", label: "Tactical Map", icon: Compass },
           { id: "assignments", label: "Active Missions", icon: CheckSquare },
           { id: "field-report", label: "Submit Field Report", icon: Radio },
           { id: "resource-requisition", label: "Request Supplies", icon: PackagePlus },
-          { id: "volunteer-tasks", label: "My Schedule", icon: Calendar }
+          { id: "responder-schedule", label: "My Schedule", icon: Calendar }
         ];
 
       case "CITIZEN":
@@ -432,31 +431,61 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onClick={() => setShowLogoutModal(false)}
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm relative z-10 flex flex-col items-center text-center"
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: "spring", duration: 0.5, bounce: 0.3 }}
+              className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-[0_20px_60px_rgba(0,0,0,0.15)] flex flex-col items-center text-center relative overflow-hidden z-10"
             >
-              <div className="w-12 h-12 rounded-full bg-red-100 text-red-500 flex items-center justify-center mb-4">
-                <LogOut className="w-6 h-6" />
-              </div>
-              <h3 className="text-lg font-bold text-gray-900 mb-1">Confirm Logout</h3>
-              <p className="text-sm text-gray-500 mb-6">Are you sure you want to sign out of your account?</p>
+              {/* Decorative background glow */}
+              <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-red-500/10 to-transparent pointer-events-none" />
+
+              <motion.div
+                initial={{ scale: 0, rotate: -15 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: "spring", duration: 0.6, bounce: 0.5, delay: 0.1 }}
+                className="w-20 h-20 bg-gradient-to-tr from-red-500 to-rose-400 rounded-2xl flex items-center justify-center mb-6 shadow-[0_10px_25px_rgba(239,68,68,0.3)] rotate-3 z-10"
+              >
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.3, type: "spring", bounce: 0.6 }}
+                >
+                  <LogOut className="w-10 h-10 text-white ml-1" strokeWidth={2.5} />
+                </motion.div>
+              </motion.div>
               
-              <div className="flex gap-3 w-full">
+              <motion.h3 
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+                className="text-2xl font-extrabold text-gray-900 mb-2 tracking-tight z-10"
+              >
+                Confirm Logout
+              </motion.h3>
+              
+              <motion.p 
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+                className="text-sm text-gray-500 mb-8 font-medium px-2 z-10"
+              >
+                Are you sure you want to sign out of your account? You will need to log back in to access your dashboard.
+              </motion.p>
+              
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+                className="flex gap-3 w-full z-10"
+              >
                 <button
                   onClick={() => setShowLogoutModal(false)}
-                  className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                  className="flex-1 py-3.5 px-4 text-sm font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 active:scale-[0.98] rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-200"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={logout}
-                  className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors"
+                  className="flex-1 py-3.5 px-4 text-sm font-bold text-white bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 active:scale-[0.98] rounded-xl transition-all shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                 >
-                  Log out
+                  Log Out
                 </button>
-              </div>
+              </motion.div>
             </motion.div>
           </div>
         )}

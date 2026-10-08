@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { MapContainer, TileLayer, Marker, Circle, ZoomControl, Tooltip } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Circle, Polygon, ZoomControl, Tooltip } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -88,8 +88,8 @@ const createRequestIcon = () => {
 };
 
 // Component to recenter map when selected pin changes (optional behavior, omitted to avoid jumping)
-// We just use a fixed center for San Pablo City
-const CENTER: [number, number] = [14.0720, 121.3250];
+// We use a fixed center for Pauli 2, Rizal, Laguna
+const CENTER: [number, number] = [14.1134, 121.3938];
 
 export const InteractiveGISMap = React.memo<GISMapProps>(({
   onSelectIncident,
@@ -130,7 +130,7 @@ export const InteractiveGISMap = React.memo<GISMapProps>(({
   const requestIcon = createRequestIcon();
 
   return (
-    <div className={`relative w-full ${className || (mini ? 'h-[350px] bg-slate-900 border border-slate-200 rounded-xl overflow-hidden shadow-xs' : 'h-[650px] bg-slate-900 border border-slate-200 rounded-xl overflow-hidden shadow-xs')} flex flex-col`}>
+    <div className={`relative w-full ${className || (mini ? 'h-[350px] bg-slate-100 dark:bg-slate-900 border border-slate-200 rounded-xl overflow-hidden shadow-xs' : 'h-[650px] bg-slate-100 dark:bg-slate-900 border border-slate-200 rounded-xl overflow-hidden shadow-xs')} flex flex-col`}>
       
       {/* Floating Tactical Layer Controls */}
       <div className="absolute top-4 left-4 z-[1000] pointer-events-none">
@@ -210,7 +210,7 @@ export const InteractiveGISMap = React.memo<GISMapProps>(({
               className={`flex items-center justify-center p-2 rounded-xl transition-all cursor-pointer font-bold text-xs mt-2 ${isPinMode ? 'bg-rose-600 text-white shadow-md shadow-rose-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
             >
               <MapPin className="w-3.5 h-3.5 mr-1.5" />
-              {isPinMode ? "Click Map to Pin" : "Drop Incident Pin"}
+              {isPinMode ? "Click Map to Pin" : "Drop Map Pin"}
             </button>
           )}
         </div>
@@ -225,7 +225,7 @@ export const InteractiveGISMap = React.memo<GISMapProps>(({
         <MapClickHandler onMapClick={onMapClick} isPinMode={isPinMode} setIsPinMode={setIsPinMode} />
         <ZoomControl position="topright" />
         
-        {/* Standard OpenStreetMap to avoid API key requirements */}
+        {/* Standard OpenStreetMap with CSS inversion for dark tactical mode (No API Key Required) */}
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -233,15 +233,27 @@ export const InteractiveGISMap = React.memo<GISMapProps>(({
 
         {showHeatmap && (
           <>
-            <Circle 
-              center={[14.0720, 121.3250]} 
-              radius={800} 
-              pathOptions={{ fillColor: '#ef4444', fillOpacity: 0.2, color: 'transparent' }} 
+            {/* Affected Area Polygon for Pauli 2 */}
+            <Polygon 
+              positions={[
+                [14.1192, 121.3858],
+                [14.1192, 121.3960],
+                [14.1101, 121.3960],
+                [14.1101, 121.3858],
+              ]}
+              pathOptions={{ fillColor: '#ef4444', fillOpacity: 0.1, color: '#ef4444', weight: 1, dashArray: '4' }}
             />
+            {/* High Risk Critical Zone */}
             <Circle 
-              center={[14.0850, 121.3380]} 
-              radius={600} 
-              pathOptions={{ fillColor: '#f59e0b', fillOpacity: 0.25, color: 'transparent' }} 
+              center={[14.1154, 121.3938]} 
+              radius={350} 
+              pathOptions={{ fillColor: '#ef4444', fillOpacity: 0.25, color: '#b91c1c', weight: 2 }} 
+            />
+            {/* Moderate Risk Zone */}
+            <Circle 
+              center={[14.1120, 121.3900]} 
+              radius={500} 
+              pathOptions={{ fillColor: '#f59e0b', fillOpacity: 0.15, color: '#d97706', weight: 2 }} 
             />
           </>
         )}

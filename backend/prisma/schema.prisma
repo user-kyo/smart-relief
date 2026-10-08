@@ -8,12 +8,235 @@ datasource db {
 }
 
 model User {
+  id         String   @id @default(uuid())
+  email      String   @unique
+  password   String
+  name       String
+  phone      String?
+  role       String   @default("CITIZEN") // SUPER_ADMIN, ADMIN, RESPONDER, CITIZEN
+  lguId      String?
+  lguName    String?
+  barangay   String?
+  status     String   @default("ACTIVE") // ACTIVE, INACTIVE, PENDING
+  skills     String? // Stored as JSON string or comma-separated
+  lastActive DateTime @default(now())
+  avatarUrl  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  reportedIncidents Incident[]          @relation("Reporter")
+  requests          AssistanceRequest[] @relation("Requester")
+  responderProfile  Responder?
+}
+
+model Incident {
+  id            String   @id @default(uuid())
+  title         String
+  description   String
+  type          String // FLOOD, LANDSLIDE, FIRE, etc.
+  severity      String // CRITICAL, HIGH, MEDIUM, LOW
+  status        String // REPORTED, VERIFIED, ASSIGNED, RESOLVED, etc.
+  locationName  String
+  barangay      String
+  lguName       String
+  lat           Float
+  lng           Float
+  affectedCount Int      @default(0)
+  reportedBy    String
+  reportedAt    DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  photoUrl      String?
+
+  reporter User @relation("Reporter", fields: [reportedBy], references: [id])
+
+  // Relations
+  timelines  IncidentTimeline[]
+  requests   AssistanceRequest[]
+  responders ResponderIncident[] // Many-to-many relationship
+}
+
+model IncidentTimeline {
+  id          String   @id @default(uuid())
+  incidentId  String
+  timestamp   DateTime @default(now())
+  action      String
+  performedBy String
+  notes       String?
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+}
+
+model AssistanceRequest {
+  id           String   @id @default(uuid())
+  citizenId    String
+  requestType  String // RESCUE, MEDICAL, FOOD_WATER, etc.
+  severity     String
+  locationName String
+  barangay     String
+  lat          Float
+  lng          Float
+  peopleCount  Int
+  specialNeeds String?
+  description  String
+  status       String // SUBMITTED, VERIFIED, ASSIGNED, RESOLVED
+  submittedAt  DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  photoUrl     String?
+
+  incidentId  String?
+  responderId String?
+
+  requester User       @relation("Requester", fields: [citizenId], references: [id])
+  incident  Incident?  @relation(fields: [incidentId], references: [id])
+  responder Responder? @relation(fields: [responderId], references: [id])
+
+  statusHistory RequestStatusHistory[]
+}
+
+model RequestStatusHistory {
   id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  name      String
-  role      String   @default("CITIZEN") // SUPER_ADMIN, ADMIN, VOLUNTEER, CITIZEN
-  status    String   @default("APPROVED") // PENDING, APPROVED, REJECTED
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  requestId String
+  status    String
+  timestamp DateTime @default(now())
+  note      String?
+
+  request AssistanceRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+}
+
+model ResourceItem {
+  id                  String    @id @default(uuid())
+  name                String
+  category            String
+  quantity            Int
+  availableQuantity   Int
+  reservedQuantity    Int
+  distributedQuantity Int
+  unit                String
+  location            String
+  lguName             String
+  minThreshold        Int
+  stockStatus         String // NORMAL, LOW_STOCK, DEPLETED
+  expirationDate      DateTime?
+  lastUpdated         DateTime  @updatedAt
+}
+
+model EvacuationCenter {
+  id               String   @id @default(uuid())
+  name             String
+  address          String
+  barangay         String
+  lguName          String
+  lat              Float
+  lng              Float
+  capacity         Int
+  currentOccupants Int
+  powerGenerator   Boolean  @default(false)
+  medicalStation   Boolean  @default(false)
+  sanitation       Boolean  @default(false)
+  wifiComm         Boolean  @default(false)
+  communityKitchen Boolean  @default(false)
+  waterPurifier    Boolean  @default(false)
+  status           String // OPEN, FULL, STANDBY, CLOSED
+  contactPerson    String
+  contactPhone     String
+  updatedAt        DateTime @updatedAt
+}
+
+model Responder {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  codeName     String
+  roleType     String // DISASTER_RESPONSE_TEAM, PARAMEDIC, etc.
+  status       String // AVAILABLE, EN_ROUTE, ON_SCENE, BUSY
+  lguName      String
+  locationName String
+  lat          Float
+  lng          Float
+  phone        String
+  teamSize     Int
+  skills       String? // JSON or comma-separated
+  equipment    String? // JSON or comma-separated
+  lastPing     DateTime @default(now())
+
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignments     ResponderIncident[]
+  handledRequests AssistanceRequest[]
+}
+
+// Many-to-many join table for Responders <-> Incidents
+model ResponderIncident {
+  responderId String
+  incidentId  String
+  assignedAt  DateTime @default(now())
+
+  responder Responder @relation(fields: [responderId], references: [id], onDelete: Cascade)
+  incident  Incident  @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@id([responderId, incidentId])
+}
+
+model LGUOrganization {
+  id                        String @id @default(uuid())
+  name                      String
+  region                    String
+  cityMunicipality          String
+  barangayCount             Int
+  registeredRespondersCount Int
+  drrmHead                  String
+  contactEmail              String
+  contactPhone              String
+  status                    String
+}
+
+model SystemLog {
+  id        String   @id @default(uuid())
+  timestamp DateTime @default(now())
+  userId    String
+  userName  String
+  userRole  String
+  action    String
+  details   String
+  ipAddress String
+  severity  String // INFO, WARNING, CRITICAL, SECURITY
+}
+
+model RolePermission {
+  id                String  @id @default(uuid())
+  role              String  @unique
+  description       String
+  incidentsCreate   Boolean @default(false)
+  incidentsVerify   Boolean @default(false)
+  incidentsAssign   Boolean @default(false)
+  incidentsDelete   Boolean @default(false)
+  requestsManage    Boolean @default(false)
+  resourcesAdd      Boolean @default(false)
+  resourcesTransfer Boolean @default(false)
+  evacuationManage  Boolean @default(false)
+  usersManage       Boolean @default(false)
+  rolesManage       Boolean @default(false)
+  systemLogsView    Boolean @default(false)
+}
+
+model AIRecommendation {
+  id                String  @id @default(uuid())
+  title             String
+  severity          String
+  reasoning         String
+  recommendedAction String
+  impactScore       Float
+  category          String
+  targetId          String?
+  status            String  @default("PENDING")
+}
+
+model EmergencyAlert {
+  id           String   @id @default(uuid())
+  title        String
+  affectedArea String
+  severity     String
+  instructions String
+  issuedAt     DateTime @default(now())
+  issuedBy     String
+  active       Boolean  @default(true)
 }

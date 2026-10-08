@@ -53,7 +53,7 @@ interface SmartReliefContextType {
   login: (email: string, password?: string) => Promise<{success: boolean, message?: string}>;
   register: (name: string, email: string, password: string, role: string) => Promise<{success: boolean, message?: string, status?: string}>;
   checkEmail: (email: string) => Promise<boolean>;
-  forgotPassword: (email: string) => Promise<boolean>;
+  forgotPassword: (email: string) => Promise<{success: boolean, message?: string}>;
   verifyOtp: (email: string, otp: string) => Promise<boolean>;
   resetPassword: (email: string, otp: string, newPassword: string) => Promise<boolean>;
   loginAsGuest: () => void;
@@ -75,8 +75,10 @@ interface SmartReliefContextType {
   
   updateEvacuationOccupancy: (id: string, occupants: number) => void;
   updateEvacuationStatus: (id: string, status: EvacuationCenter["status"]) => void;
+  addEvacuationCenter: (data: Partial<EvacuationCenter>) => void;
   
   updateResponderStatus: (id: string, status: Responder["status"], assignmentTitle?: string) => void;
+  addResponder: (data: Partial<Responder>) => void;
   
   acceptAIRecommendation: (recId: string) => void;
   rejectAIRecommendation: (recId: string) => void;
@@ -99,7 +101,7 @@ export const SmartReliefProvider: React.FC<{ children: React.ReactNode }> = ({ c
   // Local storage hydrator helper
   const getStored = <T,>(key: string, fallback: T): T => {
     try {
-      const stored = localStorage.getItem(`smartrelief_v2_${key}`);
+      const stored = localStorage.getItem(`smartrelief_v3_${key}`);
       return stored ? JSON.parse(stored) : fallback;
     } catch {
       return fallback;
@@ -108,7 +110,7 @@ export const SmartReliefProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const setStored = <T,>(key: string, value: T) => {
     try {
-      localStorage.setItem(`smartrelief_v2_${key}`, JSON.stringify(value));
+      localStorage.setItem(`smartrelief_v3_${key}`, JSON.stringify(value));
     } catch (e) {
       console.error(e);
     }
@@ -127,7 +129,7 @@ export const SmartReliefProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [aiRecommendations, setAiRecommendations] = useState<AIRecommendation[]>(() => getStored("ai_recs", initialAIRecommendations));
   const [alerts, setAlerts] = useState<EmergencyAlert[]>(() => getStored("alerts", initialAlerts));
   const [isAiLoading, setIsAiLoading] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => getStored("isAuthenticated", false));
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
   // Sync to local storage on changes
   useEffect(() => setStored("role", currentRole), [currentRole]);
@@ -142,7 +144,53 @@ export const SmartReliefProvider: React.FC<{ children: React.ReactNode }> = ({ c
   useEffect(() => setStored("permissions", rolePermissions), [rolePermissions]);
   useEffect(() => setStored("ai_recs", aiRecommendations), [aiRecommendations]);
   useEffect(() => setStored("alerts", alerts), [alerts]);
-  useEffect(() => setStored("isAuthenticated", isAuthenticated), [isAuthenticated]);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const res = await fetch("http://localhost:3000/api/auth/me", {
+          credentials: "include"
+        });
+        const data = await res.json();
+        if (data.success) {
+          let roleToSet = data.user.role;
+          if (roleToSet === 'RESIDENT') roleToSet = 'CITIZEN';
+          setCurrentRole(roleToSet as UserRole);
+          setIsAuthenticated(true);
+        }
+      } catch (e) {
+        console.error("Auth check failed:", e);
+      }
+    };
+    checkAuth();
+  }, []);
+
+  // Fetch real users from backend if Super Admin
+  useEffect(() => {
+    if (currentRole === "SUPER_ADMIN" && isAuthenticated) {
+      const fetchUsers = async () => {
+        try {
+          const res = await fetch("http://localhost:3000/api/users", {
+            credentials: "include"
+          });
+          const data = await res.json();
+          if (data.success) {
+            const mappedUsers = data.users.map((u: any) => ({
+              ...u,
+              role: u.role === "RESIDENT" ? "CITIZEN" : u.role,
+              status: u.status === "APPROVED" || u.status === "ACTIVE" ? "ACTIVE" : "INACTIVE",
+              lastActive: "Recently",
+              lguName: "Unassigned"
+            }));
+            setUsers(mappedUsers);
+          }
+        } catch (e) {
+          console.error("Failed to fetch users", e);
+        }
+      };
+      fetchUsers();
+    }
+  }, [currentRole, isAuthenticated]);
 
   const currentUser = users.find(u => u.role === currentRole) || users[0];
 
@@ -152,6 +200,7 @@ export const SmartReliefProvider: React.FC<{ children: React.ReactNode }> = ({ c
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
+        credentials: "include"
       });
       const data = await res.json();
       if (data.success) {
@@ -159,7 +208,6 @@ export const SmartReliefProvider: React.FC<{ children: React.ReactNode }> = ({ c
         if (roleToSet === 'RESIDENT') roleToSet = 'CITIZEN';
         setCurrentRole(roleToSet as UserRole);
         setIsAuthenticated(true);
-        localStorage.setItem("smartrelief_token", data.token);
         return { success: true };
       }
       return { success: false, message: data.message };
@@ -187,7 +235,8 @@ export const SmartReliefProvider: React.FC<{ children: React.ReactNode }> = ({ c
           email: data.user.email,
           phone: "Not provided",
           role: data.user.role === 'RESIDENT' ? 'CITIZEN' : data.user.role,
-          status: data.user.status === 'APPROVED' ? 'ACTIVE' : data.user.status
+          status: data.user.status === 'APPROVED' ? 'ACTIVE' : data.user.status,
+          lastActive: "Just now"
         };
         setUsers(prev => [...prev, newUserObj]);
       }
@@ -214,7 +263,7 @@ export const SmartReliefProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   };
 
-  const forgotPassword = async (email: string): Promise<boolean> => {
+  const forgotPassword = async (email: string): Promise<{success: boolean, message?: string}> => {
     try {
       const res = await fetch("http://localhost:3000/api/auth/forgot-password", {
         method: "POST",
@@ -222,10 +271,10 @@ export const SmartReliefProvider: React.FC<{ children: React.ReactNode }> = ({ c
         body: JSON.stringify({ email }),
       });
       const data = await res.json();
-      return data.success;
+      return { success: data.success, message: data.message };
     } catch (e) {
       console.error(e);
-      return false;
+      return { success: false, message: "Network error" };
     }
   };
 
@@ -265,7 +314,15 @@ export const SmartReliefProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setIsAuthenticated(true);
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await fetch("http://localhost:3000/api/auth/logout", {
+        method: "POST",
+        credentials: "include"
+      });
+    } catch (e) {
+      console.error(e);
+    }
     setIsAuthenticated(false);
   };
 
@@ -569,7 +626,56 @@ export const SmartReliefProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setEvacuationCenters(prev => prev.map(ec => ec.id === id ? { ...ec, status, updatedAt: "Just now" } : ec));
   };
 
+  const addEvacuationCenter = (data: Partial<EvacuationCenter>) => {
+    const newEC: EvacuationCenter = {
+      id: `EC-${Math.floor(1000 + Math.random() * 9000)}`,
+      name: data.name || "New Evacuation Center",
+      address: data.address || "",
+      barangay: data.barangay || "",
+      lguName: data.lguName || "Rizal",
+      lat: data.lat || 14.1134,
+      lng: data.lng || 121.3938,
+      capacity: data.capacity || 100,
+      currentOccupants: data.currentOccupants || 0,
+      facilities: data.facilities || {
+        powerGenerator: false,
+        medicalStation: false,
+        sanitation: true,
+        wifiComm: false,
+        communityKitchen: false,
+        waterPurifier: false
+      },
+      status: "OPEN",
+      contactPerson: data.contactPerson || "",
+      contactPhone: data.contactPhone || "",
+      updatedAt: new Date().toISOString()
+    };
+    setEvacuationCenters(prev => [newEC, ...prev]);
+    addLog("EVACUATION_CENTER_ADDED", `Added Evacuation Center: ${newEC.name}`, "INFO");
+  };
+
   // Responder Handlers
+  const addResponder = (data: Partial<Responder>) => {
+    const newRes: Responder = {
+      id: `RES-${Math.floor(1000 + Math.random() * 9000)}`,
+      name: data.name || "New Field Unit",
+      codeName: data.codeName || "UNIT-1",
+      roleType: data.roleType || "DISASTER_RESPONSE_TEAM",
+      status: "AVAILABLE",
+      lguName: data.lguName || "Rizal",
+      locationName: data.locationName || "Deployed Location",
+      lat: data.lat || 14.1134,
+      lng: data.lng || 121.3938,
+      phone: data.phone || "",
+      teamSize: data.teamSize || 1,
+      skills: data.skills || [],
+      equipment: data.equipment || [],
+      lastPing: "Just now"
+    };
+    setResponders(prev => [newRes, ...prev]);
+    addLog("RESPONDER_ADDED", `Added Field Unit: ${newRes.name} (${newRes.codeName})`, "INFO");
+  };
+
   const updateResponderStatus = (id: string, status: Responder["status"], assignmentTitle?: string) => {
     setResponders(prev => prev.map(r => {
       if (r.id === id) {
@@ -650,24 +756,52 @@ export const SmartReliefProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   // User Management
-  const addUser = (userData: Partial<SystemUser>) => {
-    const newUser: SystemUser = {
-      id: `usr-${Math.floor(100 + Math.random() * 900)}`,
-      name: userData.name || "New User",
-      email: userData.email || "user@smartrelief.gov.ph",
-      phone: userData.phone || "+63 900 000 0000",
-      role: userData.role || "CITIZEN",
-      status: "ACTIVE",
-      lguName: userData.lguName || "Manila DRRM",
-      lastActive: "Just now"
-    };
-    setUsers(prev => [newUser, ...prev]);
-    addLog("USER_CREATED", `Created user account for ${newUser.name} (${newUser.role})`, "SECURITY");
+  const addUser = async (userData: Partial<SystemUser>) => {
+    try {
+      const res = await register(
+        userData.name || "New User",
+        userData.email || "user@smartrelief.gov.ph",
+        "TempPassword123!",
+        userData.role || "CITIZEN"
+      );
+      if (res.success) {
+        addLog("USER_CREATED", `Created user account for ${userData.name} (${userData.role})`, "SECURITY");
+        // Re-fetch users if we are SUPER_ADMIN
+        if (currentRole === "SUPER_ADMIN") {
+          const fetchRes = await fetch("http://localhost:3000/api/users", { credentials: "include" });
+          const data = await fetchRes.json();
+          if (data.success) {
+            const mappedUsers = data.users.map((u: any) => ({
+              ...u,
+              role: u.role === "RESIDENT" ? "CITIZEN" : u.role,
+              status: u.status === "APPROVED" || u.status === "ACTIVE" ? "ACTIVE" : "INACTIVE",
+              lastActive: "Recently",
+              lguName: "Unassigned"
+            }));
+            setUsers(mappedUsers);
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Failed to add user:", e);
+    }
   };
 
-  const updateUserRole = (userId: string, role: UserRole) => {
-    setUsers(prev => prev.map(u => u.id === userId ? { ...u, role } : u));
-    addLog("USER_ROLE_CHANGED", `Updated user ${userId} role to ${role}`, "SECURITY");
+  const updateUserRole = async (userId: string, role: UserRole) => {
+    try {
+      const res = await fetch(`http://localhost:3000/api/users/${userId}/role`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: role === "CITIZEN" ? "RESIDENT" : role }),
+        credentials: "include"
+      });
+      if (res.ok) {
+        setUsers(prev => prev.map(u => u.id === userId ? { ...u, role } : u));
+        addLog("USER_ROLE_CHANGED", `Updated user ${userId} role to ${role}`, "SECURITY");
+      }
+    } catch (e) {
+      console.error("Failed to update user role in backend", e);
+    }
   };
 
   const toggleUserStatus = async (userId: string) => {
@@ -678,16 +812,18 @@ export const SmartReliefProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const newStatusBackend = newStatusFrontend === "ACTIVE" ? "APPROVED" : "PENDING";
     
     try {
-      await fetch(`http://localhost:3000/api/auth/users/${userId}/status`, {
+      const res = await fetch(`http://localhost:3000/api/users/${userId}/status`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatusBackend })
+        body: JSON.stringify({ status: newStatusBackend }),
+        credentials: "include"
       });
+      if (res.ok) {
+        setUsers(prev => prev.map(u => u.id === userId ? { ...u, status: newStatusFrontend } : u));
+      }
     } catch (e) {
       console.error("Failed to update user status in backend", e);
     }
-    
-    setUsers(prev => prev.map(u => u.id === userId ? { ...u, status: newStatusFrontend } : u));
   };
 
   // Role Permissions
@@ -759,7 +895,9 @@ export const SmartReliefProvider: React.FC<{ children: React.ReactNode }> = ({ c
     transferResource,
     updateEvacuationOccupancy,
     updateEvacuationStatus,
+    addEvacuationCenter,
     updateResponderStatus,
+    addResponder,
     acceptAIRecommendation,
     rejectAIRecommendation,
     fetchAIRecommendations,
@@ -774,6 +912,7 @@ export const SmartReliefProvider: React.FC<{ children: React.ReactNode }> = ({ c
     isAuthenticated,
     login,
     register,
+    checkEmail,
     forgotPassword,
     verifyOtp,
     resetPassword,

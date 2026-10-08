@@ -15,7 +15,8 @@ import {
   Lock,
   Filter,
   ShieldAlert,
-  Save
+  Save,
+  Download
 } from "lucide-react";
 import { useSmartRelief } from "../../../context/SmartReliefContext";
 import { KPICard } from "../../common/KPICard";
@@ -60,7 +61,7 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({ activeTab })
   const [hasUnsavedPermissions, setHasUnsavedPermissions] = useState(false);
 
   const activeAdmins = useMemo(() => users.filter(u => u.role === "ADMIN" && u.status === "ACTIVE").length, [users]);
-  const activeResponders = useMemo(() => users.filter(u => (u.role === "RESPONDER" || u.role === "VOLUNTEER") && u.status === "ACTIVE").length, [users]);
+  const activeResponders = useMemo(() => users.filter(u => u.role === "RESPONDER" && u.status === "ACTIVE").length, [users]);
   const activeIncidents = useMemo(() => incidents.filter(i => i.status !== "RESOLVED" && i.status !== "CLOSED").length, [incidents]);
 
   const filteredUsers = useMemo(() => users.filter(u => {
@@ -213,7 +214,7 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({ activeTab })
                 <option value="SUPER_ADMIN">Super Admin</option>
                 <option value="ADMIN">Admin / LGU-DRRM</option>
                 <option value="RESPONDER">Responder</option>
-                <option value="VOLUNTEER">Volunteer</option>
+
                 <option value="CITIZEN">Citizen</option>
               </select>
             </div>
@@ -265,7 +266,7 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({ activeTab })
                             <option value="SUPER_ADMIN">Super Admin</option>
                             <option value="ADMIN">Admin</option>
                             <option value="RESPONDER">Responder</option>
-                            <option value="VOLUNTEER">Volunteer</option>
+
                             <option value="CITIZEN">Citizen</option>
                           </select>
 
@@ -318,7 +319,7 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({ activeTab })
                     <th className="p-3 text-center">Super Admin</th>
                     <th className="p-3 text-center">Admin / LGU</th>
                     <th className="p-3 text-center">Responder</th>
-                    <th className="p-3 text-center">Volunteer</th>
+
                     <th className="p-3 text-center">Citizen</th>
                   </tr>
                 </thead>
@@ -337,7 +338,7 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({ activeTab })
                   ].map(item => (
                     <tr key={item.key} className="hover:bg-slate-50/80 transition-colors">
                       <td className="p-3 font-semibold text-slate-900">{item.label}</td>
-                      {(["SUPER_ADMIN", "ADMIN", "RESPONDER", "VOLUNTEER", "CITIZEN"] as UserRole[]).map(r => {
+                      {(["SUPER_ADMIN", "ADMIN", "RESPONDER", "CITIZEN"] as UserRole[]).map(r => {
                         const permVal = localPermissions.find(p => p.role === r)?.permissions[item.key as keyof RolePermission["permissions"]];
                         return (
                           <td key={r} className="p-3 text-center">
@@ -386,6 +387,81 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({ activeTab })
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* 5. SYSTEM SETTINGS TAB */}
+      {activeTab === "settings" && (
+        <div className="space-y-6 animate-in fade-in">
+          <div>
+            <h2 className="text-xl font-black text-slate-900">System Settings</h2>
+            <p className="text-xs text-slate-500 mt-0.5">Global configuration and feature flags</p>
+          </div>
+          <div className="bg-white border border-slate-200 rounded-xl p-8 text-center shadow-xs">
+            <Settings className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+            <h3 className="text-sm font-bold text-slate-800">Settings Configuration</h3>
+            <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">Global system configuration and maintenance tools will be available here in the next update.</p>
+          </div>
+        </div>
+      )}
+
+      {/* 6. ANALYTICS & REPORTS TAB */}
+      {activeTab === "analytics" && (
+        <div className="space-y-6 animate-in fade-in">
+          <div>
+            <h2 className="text-xl font-black text-slate-900">Analytics & Reports</h2>
+            <p className="text-xs text-slate-500 mt-0.5">Export platform data and view systemic insights</p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-white border border-slate-200 p-5 rounded-xl flex items-center justify-between shadow-xs">
+              <div>
+                <h3 className="text-sm font-bold text-slate-800">User Registry Export</h3>
+                <p className="text-[11px] text-slate-500 mt-0.5">Download a complete CSV of all registered users</p>
+              </div>
+              <button 
+                onClick={() => {
+                  const headers = "ID,Name,Email,Role,Status,LGU\n";
+                  const rows = users.map(u => `${u.id},"${u.name}","${u.email}",${u.role},${u.status},"${u.lguName}"`).join("\n");
+                  const blob = new Blob([headers + rows], { type: "text/csv;charset=utf-8;" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `smartrelief_users_${new Date().toISOString().split("T")[0]}.csv`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                className="px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5"
+              >
+                <Download className="w-4 h-4" />
+                Export CSV
+              </button>
+            </div>
+            
+            <div className="bg-white border border-slate-200 p-5 rounded-xl flex items-center justify-between shadow-xs">
+              <div>
+                <h3 className="text-sm font-bold text-slate-800">Audit Trail Export</h3>
+                <p className="text-[11px] text-slate-500 mt-0.5">Download system security logs</p>
+              </div>
+              <button 
+                onClick={() => {
+                  const headers = "Timestamp,Action,User,Role,Severity,Details\n";
+                  const rows = systemLogs.map(l => `"${l.timestamp}","${l.action}","${l.userName}",${l.userRole},${l.severity},"${l.details}"`).join("\n");
+                  const blob = new Blob([headers + rows], { type: "text/csv;charset=utf-8;" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `smartrelief_audit_${new Date().toISOString().split("T")[0]}.csv`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                className="px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5"
+              >
+                <Download className="w-4 h-4" />
+                Export CSV
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -443,7 +519,7 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({ activeTab })
               <option value="SUPER_ADMIN">Super Admin</option>
               <option value="ADMIN">Admin / LGU-DRRM Administrator</option>
               <option value="RESPONDER">Responder</option>
-              <option value="VOLUNTEER">Volunteer</option>
+
               <option value="CITIZEN">Citizen</option>
             </select>
           </div>

@@ -10,14 +10,14 @@ Legend:
 ========================================
 AUTHENTICATION
 ========================================
-[✓] Login - (Frontend state works; Needs true backend JWT integration)
-[✓] Logout - (Works in state; Needs backend token invalidation)
-[✓] Registration - (Form works; Needs backend creation & email verification)
-[✓] Forgot Password - (UI flow works; Needs real email service)
-[~] Change Password - (Needs to enforce strict capitalization on the backend)
-[✓] Role-Based Access - (Context provider handles this perfectly; Backend needs RBAC middleware)
-[~] Protected Routes - (Client side works; Needs server side enforcement)
-[~] Session Management - (Context works; Needs HttpOnly cookies)
+[✓] Login - (Fully integrated with backend JWT auth)
+[✓] Logout - (Token cleared on frontend)
+[✓] Registration - (Backend user creation implemented)
+[✓] Forgot Password - (Integrated with real email service via Nodemailer)
+[✓] Change Password - (Strict capitalization & complexity enforced on the backend)
+[✓] Role-Based Access - (Context provider handles UI; Backend has role enforcement)
+[✓] Protected Routes - (Client side works; Server side protected by authMiddleware)
+[✓] Session Management - (Migrated from LocalStorage to HttpOnly cookies for better security)
 
 ========================================
 SUPER ADMIN
@@ -35,7 +35,7 @@ ADMIN / BDRRMC
 ========================================
 [✓] Dashboard - (Fully implemented with advanced skeleton loading and hover animations)
 [✓] Incident Management - (Kanban and lists working perfectly in state)
-[~] Affected Areas - (Needs a dedicated map layer or visualization)
+[o] Affected Areas - (Needs a dedicated map layer or visualization)
 [✓] Inventory - (Working in state with tables)
 [ ] QR Inventory - (Needs QR code generation and scanning)
 [✓] Resource Requests - (Working in state with kanban board)

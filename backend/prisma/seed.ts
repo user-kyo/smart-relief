@@ -14,25 +14,25 @@ async function main() {
   const users = [
     {
       name: "Dr. Roberto Mendoza",
-      email: "roberto.mendoza@drrm.gov.ph",
+      email: "sadmin@email.com",
       role: "SUPER_ADMIN",
       password: defaultPassword,
     },
     {
       name: "Kapt. Elena Santos",
-      email: "elena.santos@manila.gov.ph",
+      email: "admin@email.com",
       role: "ADMIN",
       password: defaultPassword,
     },
     {
       name: "Juan Dela Cruz",
-      email: "j.delacruz@redcross.org.ph",
-      role: "VOLUNTEER",
+      email: "responder@email.com",
+      role: "RESPONDER",
       password: defaultPassword,
     },
     {
       name: "Ana Reyes",
-      email: "ana.reyes@gmail.com",
+      email: "citizen@email.com",
       role: "CITIZEN",
       password: defaultPassword,
     },

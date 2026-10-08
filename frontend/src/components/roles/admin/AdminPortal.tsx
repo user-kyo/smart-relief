@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   AlertOctagon,
   FileText,
@@ -24,7 +25,9 @@ import {
   CheckCircle2,
   Clock,
   Activity,
-  ChevronRight
+  ChevronRight,
+  ChevronDown,
+  Minus
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -38,7 +41,8 @@ import {
   Cell,
   LineChart,
   Line,
-  CartesianGrid
+  CartesianGrid,
+  Legend
 } from "recharts";
 import { useSmartRelief } from "../../../context/SmartReliefContext";
 import { KPICard } from "../../common/KPICard";
@@ -56,7 +60,8 @@ import {
   IncidentStatus,
   IncidentType,
   RequestType,
-  ResourceCategory
+  ResourceCategory,
+  AIRecommendation
 } from "../../../types";
 
 interface AdminPortalProps {
@@ -83,7 +88,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ activeTab, onOpenAiMod
     updateEvacuationOccupancy,
     acceptAIRecommendation,
     rejectAIRecommendation,
-    createIncident
+    createIncident,
+    addEvacuationCenter,
+    addResponder
   } = useSmartRelief();
 
   // Selected Items for Details Modals
@@ -92,8 +99,16 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ activeTab, onOpenAiMod
   
   // Create Modal States
   const [isNewIncidentOpen, setIsNewIncidentOpen] = useState(false);
+  const [isNewEvacCenterOpen, setIsNewEvacCenterOpen] = useState(false);
+  const [isNewResponderOpen, setIsNewResponderOpen] = useState(false);
   const [isAddResourceOpen, setIsAddResourceOpen] = useState(false);
   const [isTransferResourceOpen, setIsTransferResourceOpen] = useState(false);
+  const [pendingPinLocation, setPendingPinLocation] = useState<{lat: number, lng: number} | null>(null);
+  
+  // Custom Dropdown States
+  const [isIncidentTypeDropdownOpen, setIsIncidentTypeDropdownOpen] = useState(false);
+  const [isIncidentSeverityDropdownOpen, setIsIncidentSeverityDropdownOpen] = useState(false);
+  const [isUnitTypeDropdownOpen, setIsUnitTypeDropdownOpen] = useState(false);
 
   // Form States
   const [newIncData, setNewIncData] = useState<Partial<Incident>>({
@@ -104,8 +119,30 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ activeTab, onOpenAiMod
     locationName: "Barangay San Jose Sector 4",
     barangay: "Barangay San Jose",
     affectedCount: 10,
-    lat: 14.0720,
-    lng: 121.3250,
+    lat: 14.1134,
+    lng: 121.3938,
+  });
+
+  const [newEvacCenterData, setNewEvacCenterData] = useState<Partial<EvacuationCenter>>({
+    name: "",
+    address: "",
+    barangay: "",
+    capacity: 100,
+    currentOccupants: 0,
+    contactPerson: "",
+    contactPhone: "",
+    lat: 14.1134,
+    lng: 121.3938
+  });
+
+  const [newResponderData, setNewResponderData] = useState<Partial<Responder>>({
+    name: "",
+    codeName: "",
+    roleType: "DISASTER_RESPONSE_TEAM",
+    phone: "",
+    teamSize: 1,
+    lat: 14.1134,
+    lng: 121.3938
   });
 
   // Skeleton Loading State
@@ -118,8 +155,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ activeTab, onOpenAiMod
   }, [activeTab]);
 
   const handleMapClick = (lat: number, lng: number) => {
-    setNewIncData(prev => ({ ...prev, lat, lng }));
-    setIsNewIncidentOpen(true);
+    setPendingPinLocation({ lat, lng });
   };
 
   const [newResData, setNewResData] = useState<Partial<ResourceItem>>({
@@ -141,28 +177,98 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ activeTab, onOpenAiMod
   const [incFilterSeverity, setIncFilterSeverity] = useState("ALL");
   const [reqFilterType, setReqFilterType] = useState("ALL");
 
-  // Analytics Mock Chart Data
-  const trendData = [
-    { time: "00:00", incidents: 1, requests: 2, resolved: 0 },
-    { time: "02:00", incidents: 3, requests: 5, resolved: 1 },
-    { time: "04:00", incidents: 6, requests: 12, resolved: 3 },
-    { time: "06:00", incidents: 12, requests: 24, resolved: 8 },
-    { time: "08:00", incidents: 15, requests: 31, resolved: 14 }
-  ];
+  // Real Data Analytics Chart Data
+  const trendData = useMemo(() => {
+    const buckets: Record<string, { time: string, incidents: number, requests: number, resolved: number }> = {};
+    
+    // Group incidents by hour
+    incidents.forEach(inc => {
+      const date = new Date(inc.reportedAt);
+      if (isNaN(date.getTime())) return;
+      const hour = date.getHours().toString().padStart(2, '0') + ":00";
+      if (!buckets[hour]) buckets[hour] = { time: hour, incidents: 0, requests: 0, resolved: 0 };
+      buckets[hour].incidents += 1;
+      if (inc.status === "RESOLVED" || inc.status === "CLOSED") buckets[hour].resolved += 1;
+    });
 
-  const categoryDistributionData = [
-    { name: "Flood", value: 18, color: "#f43f5e" },
-    { name: "Medical", value: 8, color: "#38bdf8" },
-    { name: "Collapse", value: 4, color: "#f59e0b" },
-    { name: "Landslide", value: 6, color: "#a855f7" }
-  ];
+    // Group requests by hour
+    assistanceRequests.forEach(req => {
+      const date = new Date(req.submittedAt);
+      if (isNaN(date.getTime())) return;
+      const hour = date.getHours().toString().padStart(2, '0') + ":00";
+      if (!buckets[hour]) buckets[hour] = { time: hour, incidents: 0, requests: 0, resolved: 0 };
+      buckets[hour].requests += 1;
+      if (req.status === "RESOLVED") buckets[hour].resolved += 1;
+    });
 
+    // If no data, provide an empty state structure
+    if (Object.keys(buckets).length === 0) {
+      return [{ time: "00:00", incidents: 0, requests: 0, resolved: 0 }];
+    }
+
+    return Object.values(buckets).sort((a, b) => a.time.localeCompare(b.time));
+  }, [incidents, assistanceRequests]);
   // Calculated Counters
   const activeIncidents = useMemo(() => incidents.filter(i => i.status !== "RESOLVED" && i.status !== "CLOSED"), [incidents]);
   const criticalIncidents = useMemo(() => incidents.filter(i => i.severity === "CRITICAL" && i.status !== "RESOLVED"), [incidents]);
   const pendingRequests = useMemo(() => assistanceRequests.filter(r => r.status === "SUBMITTED" || r.status === "VERIFIED"), [assistanceRequests]);
   const availableResponders = useMemo(() => responders.filter(r => r.status === "AVAILABLE"), [responders]);
   const lowStockResources = useMemo(() => resources.filter(r => r.stockStatus === "LOW_STOCK" || r.stockStatus === "DEPLETED"), [resources]);
+
+  const categoryDistributionData = useMemo(() => {
+    const normalizeKey = (k: string) => {
+      const upper = k.toUpperCase();
+      if (upper.includes("FLOOD")) return "FLOOD";
+      if (upper.includes("LANDSLIDE") || upper.includes("MUD")) return "LANDSLIDE";
+      if (upper.includes("MED")) return "MEDICAL";
+      if (upper.includes("COLLAPSE")) return "STRUCTURE_COLLAPSE";
+      if (upper.includes("FIRE")) return "FIRE";
+      if (upper.includes("EARTHQUAKE") || upper.includes("QUAKE")) return "EARTHQUAKE";
+      if (upper.includes("TYPHOON") || upper.includes("STORM")) return "TYPHOON";
+      return "OTHER";
+    };
+
+    const counts = activeIncidents.reduce((acc, inc) => {
+      const normKey = normalizeKey(inc.type || "");
+      acc[normKey] = (acc[normKey] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    const colors: Record<string, string> = {
+      "FLOOD": "#f43f5e",
+      "MEDICAL": "#38bdf8",
+      "STRUCTURE_COLLAPSE": "#f59e0b",
+      "FIRE": "#ef4444",
+      "LANDSLIDE": "#a855f7",
+      "EARTHQUAKE": "#6366f1",
+      "TYPHOON": "#8b5cf6",
+      "OTHER": "#10b981" // vibrant emerald
+    };
+
+    const labels: Record<string, string> = {
+      "FLOOD": "Flood",
+      "MEDICAL": "Medical",
+      "STRUCTURE_COLLAPSE": "Collapse",
+      "FIRE": "Fire",
+      "LANDSLIDE": "Landslide",
+      "EARTHQUAKE": "Earthquake",
+      "TYPHOON": "Typhoon",
+      "OTHER": "Other"
+    };
+
+    const data = Object.entries(counts).map(([key, value]) => ({
+      name: labels[key] || key,
+      value,
+      color: colors[key] || "#94a3b8"
+    }));
+
+    // If no data, return placeholder
+    if (data.length === 0) {
+      return [{ name: "No Data", value: 1, color: "#cbd5e1" }];
+    }
+
+    return data;
+  }, [activeIncidents]);
 
   const filteredIncidents = useMemo(() => incidents.filter(i => incFilterSeverity === "ALL" || i.severity === incFilterSeverity), [incidents, incFilterSeverity]);
   const filteredRequests = useMemo(() => assistanceRequests.filter(r => reqFilterType === "ALL" || r.requestType === reqFilterType), [assistanceRequests, reqFilterType]);
@@ -173,6 +279,22 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ activeTab, onOpenAiMod
     createIncident(newIncData);
     setIsNewIncidentOpen(false);
     setNewIncData({ title: "", description: "", type: "FLOOD", severity: "HIGH", locationName: "", barangay: "", affectedCount: 10 });
+  };
+
+  const handleNewEvacCenterSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newEvacCenterData.name) return;
+    addEvacuationCenter(newEvacCenterData);
+    setIsNewEvacCenterOpen(false);
+    setNewEvacCenterData({ name: "", address: "", barangay: "", capacity: 100, currentOccupants: 0, contactPerson: "", contactPhone: "" });
+  };
+
+  const handleNewResponderSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newResponderData.name) return;
+    addResponder(newResponderData);
+    setIsNewResponderOpen(false);
+    setNewResponderData({ name: "", codeName: "", roleType: "DISASTER_RESPONSE_TEAM", phone: "", teamSize: 1 });
   };
 
   const handleAddResourceSubmit = (e: React.FormEvent) => {
@@ -500,17 +622,19 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ activeTab, onOpenAiMod
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
               
               {/* Response Velocity Trends (2 columns) */}
-              <div className="lg:col-span-2 h-[350px] bg-white dark:bg-slate-900 border rounded-2xl shadow-sm flex flex-col overflow-hidden transition-all duration-300 hover:shadow-md hover:-translate-y-1 hover:border-slate-300 dark:hover:border-slate-700" style={{ borderColor: 'var(--color-border)' }}>
+              <div 
+                onClick={() => onNavigateTab && onNavigateTab('incidents')}
+                className="lg:col-span-2 h-[350px] bg-white dark:bg-slate-900 border rounded-2xl shadow-sm flex flex-col overflow-hidden transition-all duration-300 hover:shadow-md hover:-translate-y-1 hover:border-blue-300 dark:hover:border-blue-700 cursor-pointer group" 
+                style={{ borderColor: 'var(--color-border)' }}
+              >
                 <div className="p-4 border-b flex items-center justify-between shrink-0" style={{ borderColor: 'var(--color-border)' }}>
                   <div className="flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4 text-slate-400" />
+                    <TrendingUp className="w-4 h-4 text-slate-400 group-hover:text-blue-500 transition-colors" />
                     <h3 className="font-bold text-[0.875rem]" style={{ color: 'var(--color-text-primary)' }}>Response Velocity Trends</h3>
                   </div>
                   <div className="flex items-center gap-4">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 hidden sm:block">24H Timeline</span>
-                    <button onClick={() => onNavigateTab && onNavigateTab('incidents')} className="text-[10px] font-bold uppercase tracking-wider text-blue-600 hover:text-blue-700 flex items-center gap-1 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 px-2.5 py-1.5 rounded-md transition-colors cursor-pointer">
-                      Full Report <ArrowUpRight className="w-3 h-3" />
-                    </button>
+                    <ArrowUpRight className="w-4 h-4 text-slate-300 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 group-hover:text-blue-500 transition-all duration-300" />
                   </div>
                 </div>
                 <div className="flex-1 w-full min-h-0 p-4">
@@ -523,7 +647,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ activeTab, onOpenAiMod
                         contentStyle={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)", borderRadius: "12px", fontSize: "12px", color: "var(--color-text-primary)", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }} 
                         itemStyle={{ fontWeight: 'bold' }}
                       />
-                      <Line type="monotone" dataKey="incidents" stroke="#f43f5e" strokeWidth={3} name="Active Incidents" dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
+                      <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "5px" }} />
+                      <Line type="monotone" dataKey="incidents" stroke="#f43f5e" strokeWidth={3} name="Reported Incidents" dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
                       <Line type="monotone" dataKey="requests" stroke="#f59e0b" strokeWidth={3} name="Requests" dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
                       <Line type="monotone" dataKey="resolved" stroke="#10b981" strokeWidth={3} name="Resolved" dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
                     </LineChart>
@@ -532,15 +657,17 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ activeTab, onOpenAiMod
               </div>
 
               {/* Category Breakdown (1 column) */}
-              <div className="lg:col-span-1 h-[350px] bg-white dark:bg-slate-900 border rounded-2xl shadow-sm flex flex-col overflow-hidden transition-all duration-300 hover:shadow-md hover:-translate-y-1 hover:border-slate-300 dark:hover:border-slate-700" style={{ borderColor: 'var(--color-border)' }}>
+              <div 
+                onClick={() => onNavigateTab && onNavigateTab('incidents')}
+                className="lg:col-span-1 h-[350px] bg-white dark:bg-slate-900 border rounded-2xl shadow-sm flex flex-col overflow-hidden transition-all duration-300 hover:shadow-md hover:-translate-y-1 hover:border-blue-300 dark:hover:border-blue-700 cursor-pointer group" 
+                style={{ borderColor: 'var(--color-border)' }}
+              >
                 <div className="p-4 border-b flex items-center justify-between shrink-0" style={{ borderColor: 'var(--color-border)' }}>
                   <div className="flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-slate-400" />
+                    <AlertTriangle className="w-4 h-4 text-slate-400 group-hover:text-blue-500 transition-colors" />
                     <h3 className="font-bold text-[0.875rem]" style={{ color: 'var(--color-text-primary)' }}>Incident Types</h3>
                   </div>
-                  <button onClick={() => onNavigateTab && onNavigateTab('incidents')} className="text-[10px] font-bold uppercase tracking-wider text-blue-600 hover:text-blue-700 flex items-center gap-1 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 px-2.5 py-1.5 rounded-md transition-colors cursor-pointer">
-                    Manage <ArrowUpRight className="w-3 h-3" />
-                  </button>
+                  <ArrowUpRight className="w-4 h-4 text-slate-300 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 group-hover:text-blue-500 transition-all duration-300" />
                 </div>
                 <div className="flex-1 w-full min-h-0 flex flex-col p-4">
                   <div className="flex-1 w-full min-h-0 flex items-center justify-center relative">
@@ -579,17 +706,19 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ activeTab, onOpenAiMod
               </div>
 
               {/* Recent Critical Incidents (1 column) */}
-              <div className="lg:col-span-1 h-[350px] bg-white dark:bg-slate-900 border rounded-2xl shadow-sm flex flex-col overflow-hidden transition-all duration-300 hover:shadow-md hover:-translate-y-1 hover:border-slate-300 dark:hover:border-slate-700" style={{ borderColor: 'var(--color-border)' }}>
+              <div 
+                onClick={() => onNavigateTab && onNavigateTab('incidents')}
+                className="lg:col-span-1 h-[350px] bg-white dark:bg-slate-900 border rounded-2xl shadow-sm flex flex-col overflow-hidden transition-all duration-300 hover:shadow-md hover:-translate-y-1 hover:border-blue-300 dark:hover:border-blue-700 cursor-pointer group" 
+                style={{ borderColor: 'var(--color-border)' }}
+              >
                 <div className="p-4 border-b flex items-center justify-between shrink-0" style={{ borderColor: 'var(--color-border)' }}>
                   <div className="flex items-center gap-2">
-                    <AlertOctagon className="w-4 h-4 text-slate-400" />
+                    <AlertOctagon className="w-4 h-4 text-slate-400 group-hover:text-blue-500 transition-colors" />
                     <h3 className="font-bold text-[0.875rem]" style={{ color: 'var(--color-text-primary)' }}>Critical Incidents</h3>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-rose-500 hidden sm:block">{criticalIncidents.length} Active</span>
-                    <button onClick={() => onNavigateTab && onNavigateTab('incidents')} className="text-[10px] font-bold uppercase tracking-wider text-blue-600 hover:text-blue-700 flex items-center gap-1 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 px-2.5 py-1.5 rounded-md transition-colors cursor-pointer">
-                      View All <ArrowUpRight className="w-3 h-3" />
-                    </button>
+                    <ArrowUpRight className="w-4 h-4 text-slate-300 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 group-hover:text-blue-500 transition-all duration-300" />
                   </div>
                 </div>
                 <div className="flex-1 w-full overflow-y-auto p-4 space-y-3 custom-scrollbar">
@@ -602,7 +731,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ activeTab, onOpenAiMod
                       <div key={inc.id} className="p-3 bg-slate-50 dark:bg-slate-800/50 border rounded-xl flex flex-col gap-1.5 transition-colors" style={{ borderColor: 'var(--color-border)' }}>
                         <div className="flex items-start justify-between gap-4">
                           <span className="font-bold text-xs tracking-tight" style={{ color: 'var(--color-text-primary)' }}>{inc.title}</span>
-                          <span className="text-[10px] font-mono whitespace-nowrap text-slate-400">{new Date(inc.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                          <span className="text-[10px] font-mono whitespace-nowrap text-slate-400">{new Date(inc.reportedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 rounded">Critical</span>
@@ -1047,97 +1176,445 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ activeTab, onOpenAiMod
         </div>
       )}
 
+      {/* Select Pin Type Modal */}
+      <Modal isOpen={pendingPinLocation !== null} onClose={() => setPendingPinLocation(null)} title="Select Pin Type">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pb-4">
+          <button
+            onClick={() => {
+              if (pendingPinLocation) setNewIncData(prev => ({ ...prev, lat: pendingPinLocation.lat, lng: pendingPinLocation.lng }));
+              setPendingPinLocation(null);
+              setIsNewIncidentOpen(true);
+            }}
+            className="flex flex-col items-center justify-center p-5 border border-slate-200 rounded-2xl hover:border-rose-500 hover:bg-rose-50 transition-all gap-4 group shadow-sm hover:shadow-md"
+          >
+            <div className="w-14 h-14 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 group-hover:scale-110 group-hover:bg-rose-600 group-hover:text-white transition-all shadow-sm">
+              <AlertOctagon className="w-7 h-7" />
+            </div>
+            <span className="text-sm font-extrabold text-slate-800">Incident</span>
+          </button>
+
+          <button
+            onClick={() => {
+              if (pendingPinLocation) setNewEvacCenterData(prev => ({ ...prev, lat: pendingPinLocation.lat, lng: pendingPinLocation.lng }));
+              setPendingPinLocation(null);
+              setIsNewEvacCenterOpen(true);
+            }}
+            className="flex flex-col items-center justify-center p-5 border border-slate-200 rounded-2xl hover:border-blue-500 hover:bg-blue-50 transition-all gap-4 group shadow-sm hover:shadow-md"
+          >
+            <div className="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 group-hover:scale-110 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
+              <Home className="w-7 h-7" />
+            </div>
+            <span className="text-sm font-extrabold text-slate-800 text-center">Evacuation Center</span>
+          </button>
+
+          <button
+            onClick={() => {
+              if (pendingPinLocation) setNewResponderData(prev => ({ ...prev, lat: pendingPinLocation.lat, lng: pendingPinLocation.lng }));
+              setPendingPinLocation(null);
+              setIsNewResponderOpen(true);
+            }}
+            className="flex flex-col items-center justify-center p-5 border border-slate-200 rounded-2xl hover:border-amber-500 hover:bg-amber-50 transition-all gap-4 group shadow-sm hover:shadow-md"
+          >
+            <div className="w-14 h-14 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 group-hover:scale-110 group-hover:bg-amber-500 group-hover:text-white transition-all shadow-sm">
+              <Users2 className="w-7 h-7" />
+            </div>
+            <span className="text-sm font-extrabold text-slate-800">Field Unit</span>
+          </button>
+        </div>
+      </Modal>
+
       {/* Modal 1: Report Incident Form */}
-      <Modal isOpen={isNewIncidentOpen} onClose={() => setIsNewIncidentOpen(false)} title="Report New Field Incident">
-        <form onSubmit={handleNewIncidentSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Incident Title</label>
-            <input
-              type="text"
-              required
-              value={newIncData.title}
-              onChange={e => setNewIncData({ ...newIncData, title: e.target.value })}
-              placeholder="e.g., Trapped Rooftop Residents - Flood Sector 4"
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Incident Category</label>
-            <select
-              value={newIncData.type}
-              onChange={e => setNewIncData({ ...newIncData, type: e.target.value as IncidentType })}
-              className="w-full bg-slate-50 border border-slate-200 text-xs text-slate-800 rounded-xl px-3 py-2 focus:outline-none focus:border-blue-500 focus:bg-white"
-            >
-              <option value="FLOOD">Flood / Flash Flood</option>
-              <option value="LANDSLIDE">Landslide</option>
-              <option value="FIRE">Fire Emergency</option>
-              <option value="STRUCTURE_COLLAPSE">Structural Collapse</option>
-              <option value="MEDICAL">Medical Emergency</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Severity Level</label>
-            <select
-              value={newIncData.severity}
-              onChange={e => setNewIncData({ ...newIncData, severity: e.target.value as IncidentSeverity })}
-              className="w-full bg-slate-50 border border-slate-200 text-xs text-slate-800 rounded-xl px-3 py-2 focus:outline-none focus:border-blue-500 focus:bg-white"
-            >
-              <option value="CRITICAL">Critical (Life Threatening)</option>
-              <option value="HIGH">High Priority</option>
-              <option value="MEDIUM">Medium Priority</option>
-              <option value="LOW">Low Priority</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Barangay Location</label>
-            <input
-              type="text"
-              value={newIncData.locationName}
-              onChange={e => setNewIncData({ ...newIncData, locationName: e.target.value, barangay: e.target.value })}
-              placeholder="Barangay San Jose"
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
+      <Modal isOpen={isNewIncidentOpen} onClose={() => setIsNewIncidentOpen(false)} title="Report New Field Incident" maxWidth="2xl">
+        <form onSubmit={handleNewIncidentSubmit} className="flex flex-col gap-5">
+          {/* Details Section */}
+          <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-4">
+            <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2 mb-2">
+              <FileText className="w-4 h-4 text-blue-500" /> Incident Details
+            </h4>
+            
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Latitude</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Incident Title</label>
               <input
-                type="number"
-                step="any"
-                value={newIncData.lat || ""}
-                onChange={e => setNewIncData({ ...newIncData, lat: parseFloat(e.target.value) })}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white"
+                type="text"
+                required
+                value={newIncData.title}
+                onChange={e => setNewIncData({ ...newIncData, title: e.target.value })}
+                placeholder="e.g., Trapped Rooftop Residents - Flood Sector 4"
+                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
               />
             </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="relative z-50">
+                <label className="block text-xs font-bold text-slate-700 mb-1">Category</label>
+                <div className="relative">
+                  <Activity className={`w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none z-10 transition-colors ${isIncidentTypeDropdownOpen ? 'text-blue-500' : 'text-[#94A3B8]'}`} />
+                  
+                  <button
+                    type="button"
+                    onClick={() => setIsIncidentTypeDropdownOpen(!isIncidentTypeDropdownOpen)}
+                    className="block w-full pl-10 pr-10 py-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#3b82f6]/20 focus:border-[#3b82f6] transition-all text-left text-[#0F172A]"
+                  >
+                    {
+                      [
+                        { value: "FLOOD", label: "Flood" },
+                        { value: "LANDSLIDE", label: "Landslide" },
+                        { value: "FIRE", label: "Fire" },
+                        { value: "STRUCTURE_COLLAPSE", label: "Structural Collapse" },
+                        { value: "MEDICAL", label: "Medical" }
+                      ].find(opt => opt.value === newIncData.type)?.label || "Select Category"
+                    }
+                  </button>
+
+                  <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none z-10">
+                    <motion.svg 
+                      animate={{ rotate: isIncidentTypeDropdownOpen ? 180 : 0 }}
+                      className="h-4 w-4 text-[#94A3B8]" 
+                      fill="none" 
+                      viewBox="0 0 24 24" 
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </motion.svg>
+                  </div>
+
+                  <AnimatePresence>
+                    {isIncidentTypeDropdownOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10, filter: "blur(4px)" }}
+                        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                        exit={{ opacity: 0, y: -10, filter: "blur(4px)" }}
+                        transition={{ duration: 0.2, ease: "easeOut" }}
+                        className="absolute top-full left-0 right-0 mt-2 bg-white/90 backdrop-blur-md border border-[#E2E8F0]/80 rounded-xl shadow-xl z-50 overflow-hidden"
+                      >
+                        {[
+                          { value: "FLOOD", label: "Flood" },
+                          { value: "LANDSLIDE", label: "Landslide" },
+                          { value: "FIRE", label: "Fire" },
+                          { value: "STRUCTURE_COLLAPSE", label: "Structural Collapse" },
+                          { value: "MEDICAL", label: "Medical" }
+                        ].map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => {
+                              setNewIncData({ ...newIncData, type: option.value as IncidentType });
+                              setIsIncidentTypeDropdownOpen(false);
+                            }}
+                            className={`w-full text-left px-4 py-3 text-sm font-medium hover:bg-[#F8FAFC]/50 transition-colors ${newIncData.type === option.value ? 'bg-[#EFF6FF] text-[#3b82f6]' : 'text-[#0F172A]'}`}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+              
+              <div className="relative z-40">
+                <label className="block text-xs font-bold text-slate-700 mb-1">Severity Level</label>
+                <div className="relative">
+                  <AlertTriangle className={`w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none z-10 transition-colors ${isIncidentSeverityDropdownOpen ? 'text-rose-500' : 'text-[#94A3B8]'}`} />
+                  
+                  <button
+                    type="button"
+                    onClick={() => setIsIncidentSeverityDropdownOpen(!isIncidentSeverityDropdownOpen)}
+                    className="block w-full pl-10 pr-10 py-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#3b82f6]/20 focus:border-[#3b82f6] transition-all text-left text-[#0F172A]"
+                  >
+                    {
+                      [
+                        { value: "CRITICAL", label: "Critical" },
+                        { value: "HIGH", label: "High" },
+                        { value: "MEDIUM", label: "Medium" },
+                        { value: "LOW", label: "Low" }
+                      ].find(opt => opt.value === newIncData.severity)?.label || "Select Severity"
+                    }
+                  </button>
+
+                  <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none z-10">
+                    <motion.svg 
+                      animate={{ rotate: isIncidentSeverityDropdownOpen ? 180 : 0 }}
+                      className="h-4 w-4 text-[#94A3B8]" 
+                      fill="none" 
+                      viewBox="0 0 24 24" 
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </motion.svg>
+                  </div>
+
+                  <AnimatePresence>
+                    {isIncidentSeverityDropdownOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10, filter: "blur(4px)" }}
+                        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                        exit={{ opacity: 0, y: -10, filter: "blur(4px)" }}
+                        transition={{ duration: 0.2, ease: "easeOut" }}
+                        className="absolute top-full left-0 right-0 mt-2 bg-white/90 backdrop-blur-md border border-[#E2E8F0]/80 rounded-xl shadow-xl z-50 overflow-hidden"
+                      >
+                        {[
+                          { value: "CRITICAL", label: "Critical" },
+                          { value: "HIGH", label: "High" },
+                          { value: "MEDIUM", label: "Medium" },
+                          { value: "LOW", label: "Low" }
+                        ].map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => {
+                              setNewIncData({ ...newIncData, severity: option.value as IncidentSeverity });
+                              setIsIncidentSeverityDropdownOpen(false);
+                            }}
+                            className={`w-full text-left px-4 py-3 text-sm font-medium hover:bg-[#F8FAFC]/50 transition-colors ${newIncData.severity === option.value ? 'bg-[#EFF6FF] text-[#3b82f6]' : 'text-[#0F172A]'}`}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Est. Affected</label>
+                <div className="relative group">
+                  <Users2 className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2 group-hover:text-blue-500 transition-colors pointer-events-none z-10" />
+                  <input
+                    type="number"
+                    min="1"
+                    value={newIncData.affectedCount}
+                    onChange={e => setNewIncData({ ...newIncData, affectedCount: Math.max(1, parseInt(e.target.value) || 1) })}
+                    className="w-full bg-[#F8FAFC] border border-[#E2E8F0] text-sm text-[#0F172A] font-medium rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#3b82f6]/20 focus:border-[#3b82f6] transition-all"
+                  />
+                </div>
+              </div>
+            </div>
+
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Longitude</label>
-              <input
-                type="number"
-                step="any"
-                value={newIncData.lng || ""}
-                onChange={e => setNewIncData({ ...newIncData, lng: parseFloat(e.target.value) })}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white"
+              <label className="block text-xs font-bold text-slate-700 mb-1">Description</label>
+              <textarea
+                required
+                rows={2}
+                value={newIncData.description}
+                onChange={e => setNewIncData({ ...newIncData, description: e.target.value })}
+                placeholder="Provide specific details about the incident..."
+                className="w-full bg-[#F8FAFC] border border-[#E2E8F0] text-sm text-[#0F172A] font-medium rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#3b82f6]/20 focus:border-[#3b82f6] transition-all resize-none"
               />
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Estimated People Affected</label>
-            <input
-              type="number"
-              value={newIncData.affectedCount}
-              onChange={e => setNewIncData({ ...newIncData, affectedCount: parseInt(e.target.value) || 1 })}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white"
-            />
+          {/* Location Section */}
+          <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-4">
+            <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2 mb-2">
+              <MapPin className="w-4 h-4 text-rose-500" /> Location Data
+            </h4>
+            
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Barangay / Landmark</label>
+              <div className="relative">
+                <Building className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  required
+                  value={newIncData.locationName}
+                  onChange={e => setNewIncData({ ...newIncData, locationName: e.target.value, barangay: e.target.value })}
+                  placeholder="e.g. Pauli 2, Rizal"
+                  className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Latitude</label>
+                <input
+                  type="number"
+                  step="any"
+                  required
+                  value={newIncData.lat || ""}
+                  onChange={e => setNewIncData({ ...newIncData, lat: parseFloat(e.target.value) })}
+                  className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Longitude</label>
+                <input
+                  type="number"
+                  step="any"
+                  required
+                  value={newIncData.lng || ""}
+                  onChange={e => setNewIncData({ ...newIncData, lng: parseFloat(e.target.value) })}
+                  className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
+                />
+              </div>
+            </div>
+            
+            <p className="text-[10px] text-slate-500 flex items-center gap-1 mt-1">
+              <CheckCircle2 className="w-3 h-3 text-emerald-500" /> You can click on the tactical map to auto-fill GPS coordinates.
+            </p>
           </div>
 
-          <div className="pt-4 flex justify-end gap-2">
-            <button type="button" onClick={() => setIsNewIncidentOpen(false)} className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-xs font-bold">Cancel</button>
-            <button type="submit" className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold">Submit Incident Report</button>
+          <div className="pt-2 flex justify-end gap-3 border-t border-slate-100 mt-2">
+            <button type="button" onClick={() => setIsNewIncidentOpen(false)} className="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl text-sm font-bold transition-colors">Cancel</button>
+            <button type="submit" className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-bold shadow-sm shadow-rose-600/20 transition-all flex items-center gap-2">
+              <Send className="w-4 h-4" /> Submit Report
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modal: New Evacuation Center Form */}
+      <Modal isOpen={isNewEvacCenterOpen} onClose={() => setIsNewEvacCenterOpen(false)} title="Register Evacuation Center" maxWidth="2xl">
+        <form onSubmit={handleNewEvacCenterSubmit} className="flex flex-col gap-5">
+          <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-4">
+            <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2 mb-2">
+              <Home className="w-4 h-4 text-blue-500" /> Center Details
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5 sm:col-span-2">
+                <label className="text-[11px] font-bold text-slate-500 uppercase">Center Name</label>
+                <input required type="text" value={newEvacCenterData.name || ""} onChange={(e) => setNewEvacCenterData({ ...newEvacCenterData, name: e.target.value })} className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium" placeholder="e.g. San Jose Elementary School" />
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <label className="text-[11px] font-bold text-slate-500 uppercase">Address / Location Name</label>
+                <input required type="text" value={newEvacCenterData.address || ""} onChange={(e) => setNewEvacCenterData({ ...newEvacCenterData, address: e.target.value })} className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium" placeholder="e.g. Main St., Brgy San Jose" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-slate-500 uppercase">Capacity</label>
+                <input required type="number" value={newEvacCenterData.capacity || ""} onChange={(e) => setNewEvacCenterData({ ...newEvacCenterData, capacity: parseInt(e.target.value) })} className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium" placeholder="0" min="1" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-slate-500 uppercase">Current Occupants</label>
+                <input required type="number" value={newEvacCenterData.currentOccupants || 0} onChange={(e) => setNewEvacCenterData({ ...newEvacCenterData, currentOccupants: parseInt(e.target.value) })} className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium" placeholder="0" min="0" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-4">
+            <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2 mb-2">
+              <Users2 className="w-4 h-4 text-blue-500" /> Contact Info
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-slate-500 uppercase">Contact Person</label>
+                <input required type="text" value={newEvacCenterData.contactPerson || ""} onChange={(e) => setNewEvacCenterData({ ...newEvacCenterData, contactPerson: e.target.value })} className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium" placeholder="e.g. Juan Dela Cruz" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-slate-500 uppercase">Phone Number</label>
+                <input required type="text" value={newEvacCenterData.contactPhone || ""} onChange={(e) => setNewEvacCenterData({ ...newEvacCenterData, contactPhone: e.target.value })} className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium" placeholder="09XX XXX XXXX" />
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-2 flex justify-end gap-3 border-t border-slate-100 mt-2">
+            <button type="button" onClick={() => setIsNewEvacCenterOpen(false)} className="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl text-sm font-bold transition-colors">Cancel</button>
+            <button type="submit" className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold shadow-sm shadow-blue-600/20 transition-all flex items-center gap-2">
+              <Home className="w-4 h-4" /> Add Center
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modal: New Responder Form */}
+      <Modal isOpen={isNewResponderOpen} onClose={() => setIsNewResponderOpen(false)} title="Deploy Field Unit" maxWidth="2xl">
+        <form onSubmit={handleNewResponderSubmit} className="flex flex-col gap-5">
+          <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-4">
+            <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2 mb-2">
+              <Users2 className="w-4 h-4 text-amber-500" /> Unit Details
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-slate-500 uppercase">Team Name</label>
+                <input required type="text" value={newResponderData.name || ""} onChange={(e) => setNewResponderData({ ...newResponderData, name: e.target.value })} className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all font-medium" placeholder="e.g. Alpha Rescue Team" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-slate-500 uppercase">Code Name</label>
+                <input required type="text" value={newResponderData.codeName || ""} onChange={(e) => setNewResponderData({ ...newResponderData, codeName: e.target.value })} className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all font-medium" placeholder="e.g. ALPHA-1" />
+              </div>
+              
+              <div className="space-y-1.5 sm:col-span-2 relative z-50">
+                <label className="text-[11px] font-bold text-slate-500 uppercase flex items-center gap-1.5">
+                  Unit Type
+                </label>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setIsUnitTypeDropdownOpen(!isUnitTypeDropdownOpen)}
+                    className="block w-full pl-4 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all text-left text-slate-700 shadow-sm"
+                  >
+                    {
+                      [
+                        { value: "DISASTER_RESPONSE_TEAM", label: "Disaster Response" },
+                        { value: "PARAMEDIC", label: "Paramedic" },
+                        { value: "FIRE_RESCUE", label: "Fire Rescue" },
+                        { value: "POLICE_ENFORCEMENT", label: "Police" }
+                      ].find(opt => opt.value === (newResponderData.roleType || "DISASTER_RESPONSE_TEAM"))?.label
+                    }
+                  </button>
+
+                  <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none z-10">
+                    <motion.svg 
+                      animate={{ rotate: isUnitTypeDropdownOpen ? 180 : 0 }}
+                      className="h-4 w-4 text-slate-400" 
+                      fill="none" 
+                      viewBox="0 0 24 24" 
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </motion.svg>
+                  </div>
+
+                  <AnimatePresence>
+                    {isUnitTypeDropdownOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10, filter: "blur(4px)" }}
+                        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                        exit={{ opacity: 0, y: -10, filter: "blur(4px)" }}
+                        transition={{ duration: 0.2, ease: "easeOut" }}
+                        className="absolute top-full left-0 right-0 mt-2 bg-white/90 backdrop-blur-md border border-[#E2E8F0]/80 rounded-xl shadow-xl z-50 overflow-hidden"
+                      >
+                        {[
+                          { value: "DISASTER_RESPONSE_TEAM", label: "Disaster Response" },
+                          { value: "PARAMEDIC", label: "Paramedic" },
+                          { value: "FIRE_RESCUE", label: "Fire Rescue" },
+                          { value: "POLICE_ENFORCEMENT", label: "Police" }
+                        ].map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => {
+                              setNewResponderData({ ...newResponderData, roleType: option.value as Responder["roleType"] });
+                              setIsUnitTypeDropdownOpen(false);
+                            }}
+                            className={`w-full text-left px-4 py-3 text-sm font-semibold hover:bg-slate-50 transition-colors ${(newResponderData.roleType || "DISASTER_RESPONSE_TEAM") === option.value ? 'bg-amber-50 text-amber-600' : 'text-slate-700'}`}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-slate-500 uppercase">Phone / Radio Freq</label>
+                <input required type="text" value={newResponderData.phone || ""} onChange={(e) => setNewResponderData({ ...newResponderData, phone: e.target.value })} className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all font-medium" placeholder="09XX or VHF Channel" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-slate-500 uppercase">Team Size</label>
+                <input required type="number" value={newResponderData.teamSize || 1} onChange={(e) => setNewResponderData({ ...newResponderData, teamSize: parseInt(e.target.value) })} className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all font-medium" placeholder="1" min="1" />
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-2 flex justify-end gap-3 border-t border-slate-100 mt-2">
+            <button type="button" onClick={() => setIsNewResponderOpen(false)} className="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl text-sm font-bold transition-colors">Cancel</button>
+            <button type="submit" className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-bold shadow-sm shadow-amber-500/20 transition-all flex items-center gap-2">
+              <Users2 className="w-4 h-4" /> Deploy Unit
+            </button>
           </div>
         </form>
       </Modal>

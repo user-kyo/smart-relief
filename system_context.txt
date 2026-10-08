@@ -1,0 +1,51 @@
+# SmartRelief System Context
+
+## 1. Project Overview
+**SmartRelief** is an AI-Powered Disaster Resource Coordination and Decision Support System designed to streamline emergency response and disaster management. By centralizing incident reporting, resource allocation, and personnel dispatch, the system aims to improve response times and resource efficiency during crises.
+
+## 2. Core Functionality & Scope
+The system operates through four distinct, role-based portals:
+
+### A. Super Admin Portal
+- **Scope:** System-wide configuration and security oversight.
+- **Functionality:** User and role management, permission configuration (toggle grids), and viewing system audit logs.
+
+### B. Admin / LGU-DRRM Portal
+- **Scope:** Central command for local government units and disaster risk reduction management councils.
+- **Functionality:**
+  - **Incident & Resource Management:** Kanban-style tracking for incident responses and resource requests.
+  - **Inventory & Logistics:** Tracking available relief goods and resources.
+  - **Evacuation Management:** Monitoring evacuation centers and tracking evacuee capacity.
+  - **Personnel Dispatch:** Managing and assigning responders and volunteers to active incidents.
+  - **AI Decision Support:** Uses Gemini AI for *Priority Scoring* of incidents (triaging) and *Demand Prediction* for relief goods based on incident severity.
+  - **GIS Mapping:** Interactive Leaflet maps for spatial awareness of disaster zones.
+
+### C. Responder / Volunteer Portal
+- **Scope:** Mobile-friendly field operations portal.
+- **Functionality:** Viewing assigned tasks, submitting field reports, updating incident response status, and tracking resource distribution handoffs.
+
+### D. Citizen / Resident Portal
+- **Scope:** Public-facing interface for affected individuals.
+- **Functionality:** Reporting incidents (via map picker), requesting emergency assistance, viewing active disaster maps and nearby evacuation centers, and receiving public alerts.
+
+## 3. Core Workflows (End-to-End)
+The primary system workflow follows this path:
+1. **Reporting:** A resident reports an incident or requests assistance.
+2. **Assessment:** An Admin receives and assesses the incident.
+3. **AI Triage:** The system generates an AI-driven priority score and predicts resource requirements.
+4. **Allocation:** Admin checks inventory, allocates resources, and assigns a responder.
+5. **Execution:** Responder receives the task, navigates to the area, and completes the distribution/rescue.
+6. **Resolution:** Inventory is updated automatically, the resident is notified, and system dashboards reflect the resolved status.
+
+## 4. Current Limitations & Ongoing Development
+While the system's frontend architecture and UI state management are highly robust, several backend and integration features are currently in development:
+
+- **State Management:** Currently, many user flows (incidents, inventory updates) are simulated using complex frontend Context state. True backend integration with the Prisma/Postgres database is pending.
+- **Security:** Client-side route protection and RBAC are implemented, but strict server-side enforcement (JWT validation, HttpOnly cookies, API route protection) is required.
+- **AI Integration:** AI Priority Scoring and Demand Prediction logic are simulated in the UI; live integration with the Gemini API is needed.
+- **Missing Features:** 
+  - Real-time route optimization (requires Google Maps/Mapbox API integration).
+  - Export functionality for reports (PDF/CSV).
+  - QR Code inventory generation and scanning.
+  - Dedicated modules for "Lost & Found" and a public "AI Assistant".
+  - Comprehensive Zod validation on backend API routes.

@@ -23,6 +23,7 @@ export function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [otpStep, setOtpStep] = useState<'email' | 'otp' | 'new_password'>('email');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [resendTimer, setResendTimer] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -37,9 +38,19 @@ export function LoginPage() {
     };
   }, []);
 
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [resendTimer]);
+
   const roleOptions = [
     { value: 'CITIZEN', label: 'Citizen' },
-    { value: 'VOLUNTEER', label: 'Volunteer' },
+
     { value: 'ADMIN', label: 'Admin' }
   ];
   const selectedRoleLabel = roleOptions.find(opt => opt.value === role)?.label || 'Select Role';
@@ -77,6 +88,42 @@ export function LoginPage() {
     setError('');
     
     let isValid = true;
+
+    // DEVELOPER SEED CHECK
+    if (isRegistering) {
+      const lowerName = name.trim().toLowerCase();
+      if (['admintest', 'respondertest', 'citizentest'].includes(lowerName)) {
+        setIsLoading(true);
+        await new Promise(r => setTimeout(r, 800)); // Artificial delay for animation
+        setIsLoading(false);
+        if (lowerName === 'citizentest') {
+          setShowRegSuccessModal(true);
+        } else {
+          setShowApprovalModal(true);
+        }
+        return;
+      }
+    }
+    
+    if (authMode === 'login') {
+      const lowerEmail = email.trim().toLowerCase();
+      if (['admintest', 'respondertest', 'citizentest'].includes(lowerEmail)) {
+        setIsLoading(true);
+        await new Promise(r => setTimeout(r, 800)); // Artificial delay for animation
+        setIsLoading(false);
+        
+        if (lowerEmail === 'admintest' || lowerEmail === 'respondertest') {
+          setShowApprovalModal(true);
+        } else if (lowerEmail === 'citizentest') {
+          const loginResult = await login('citizen@email.com', 'password123');
+          if (!loginResult.success) {
+            setError(loginResult.message || 'Invalid credentials.');
+          }
+        }
+        return;
+      }
+    }
+
     const newFieldErrors: Record<string, string> = {};
 
     if (authMode !== 'forgot_password' || (authMode === 'forgot_password' && otpStep === 'email')) {
@@ -127,17 +174,20 @@ export function LoginPage() {
     if (isForgotPassword) {
       if (otpStep === 'email') {
         setIsLoading(true); 
-        const success = await forgotPassword(email);
+        await new Promise(r => setTimeout(r, 800)); // Artificial delay for animation
+        const result = await forgotPassword(email);
         setIsLoading(false);
-        if (success) {
+        if (result.success) {
           setOtpStep('otp'); 
+          setResendTimer(60);
         } else {
-          setFieldErrors({ email: 'Email address not found' });
+          setFieldErrors({ email: result.message || 'Email address not found' });
           setShakeKey(prev => prev + 1);
         }
         return;
       } else if (otpStep === 'otp') {
         setIsLoading(true); 
+        await new Promise(r => setTimeout(r, 800)); // Artificial delay for animation
         const success = await verifyOtp(email, otp.join(''));
         setIsLoading(false);
         if (success) {
@@ -149,6 +199,7 @@ export function LoginPage() {
         return;
       } else if (otpStep === 'new_password') {
         setIsLoading(true); 
+        await new Promise(r => setTimeout(r, 800)); // Artificial delay for animation
         const success = await resetPassword(email, otp.join(''), password);
         setIsLoading(false);
         if (success) {
@@ -207,6 +258,7 @@ export function LoginPage() {
     setName('');
     setOtpStep('email');
     setOtp(['', '', '', '', '', '']);
+    setResendTimer(0);
   };
 
   return (
@@ -527,6 +579,32 @@ export function LoginPage() {
                     </motion.p>
                   )}
                 </AnimatePresence>
+
+                <div className="mt-5 mb-1 flex justify-center">
+                  <button
+                    type="button"
+                    disabled={resendTimer > 0 || isLoading}
+                    onClick={async () => {
+                      if (resendTimer > 0 || isLoading) return;
+                      
+                      // Transition back to email state for animation
+                      setOtpStep('email');
+                      setOtp(['', '', '', '', '', '']);
+                      setFieldErrors({});
+                      setIsLoading(true);
+                      
+                      await new Promise(r => setTimeout(r, 800)); // Let the UI transition and show "Sending OTP..."
+                      await forgotPassword(email);
+                      
+                      setIsLoading(false);
+                      setOtpStep('otp');
+                      setResendTimer(60);
+                    }}
+                    className={`text-[11px] uppercase tracking-wider font-bold transition-colors ${resendTimer > 0 ? 'text-[#94A3B8] cursor-not-allowed' : 'text-[#3b82f6] hover:text-[#2563eb]'}`}
+                  >
+                    {resendTimer > 0 ? `Resend OTP in ${resendTimer}s` : 'Resend OTP'}
+                  </button>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -553,7 +631,7 @@ export function LoginPage() {
                           exit={{ opacity: 0, filter: "blur(4px)" }}
                           transition={{ duration: 0.2 }}
                           type="button"
-                          onClick={(e) => { e.preventDefault(); setAuthMode('forgot_password'); setError(''); setOtpStep('email'); setOtp(['', '', '', '', '', '']); }}
+                          onClick={(e) => { e.preventDefault(); setAuthMode('forgot_password'); setError(''); setFieldErrors({}); setOtpStep('email'); setOtp(['', '', '', '', '', '']); }}
                           className="text-[10px] font-bold text-[#3b82f6] hover:text-[#2563eb] transition-colors"
                         >
                           Forgot password?
@@ -692,7 +770,7 @@ export function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full flex justify-center items-center gap-2 py-3.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-[#111827] hover:bg-[#1f2937] hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#111827] transition-all active:scale-[0.98] disabled:opacity-80 disabled:cursor-not-allowed"
+              className="w-full flex justify-center items-center gap-2 py-3.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-[#111827] hover:bg-[#1f2937] hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#111827] transition-colors active:scale-[0.98] disabled:opacity-80 disabled:cursor-not-allowed"
             >
               {isLoading && <Loader2 className="w-4 h-4 animate-spin shrink-0" />}
               <div className="relative overflow-hidden flex items-center justify-center">
@@ -719,6 +797,9 @@ export function LoginPage() {
               e.preventDefault(); 
               if (isForgotPassword) {
                 setAuthMode('login');
+                setError('');
+                setFieldErrors({});
+                setPassword('');
               } else {
                 toggleMode();
               }
@@ -777,26 +858,53 @@ export function LoginPage() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ type: "spring", duration: 0.5, bounce: 0.3 }}
-              className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl flex flex-col items-center text-center"
+              className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-[0_20px_60px_rgba(0,0,0,0.15)] flex flex-col items-center text-center relative overflow-hidden"
             >
-              <div className="w-16 h-16 bg-[#ECFDF5] rounded-full flex items-center justify-center mb-6">
-                <CheckCircle className="w-8 h-8 text-[#10B981]" strokeWidth={2.5} />
-              </div>
-              <h3 className="text-xl font-bold text-[#111827] mb-2">Password Reset!</h3>
-              <p className="text-sm text-[#64748B] mb-8 font-medium">
+              {/* Decorative background glow */}
+              <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-[#10B981]/10 to-transparent pointer-events-none" />
+              
+              <motion.div
+                initial={{ scale: 0, rotate: -15 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: "spring", duration: 0.6, bounce: 0.5, delay: 0.1 }}
+                className="w-20 h-20 bg-gradient-to-tr from-[#10B981] to-[#34D399] rounded-2xl flex items-center justify-center mb-6 shadow-[0_10px_25px_rgba(16,185,129,0.3)] rotate-3 z-10"
+              >
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.3, type: "spring", bounce: 0.6 }}
+                >
+                  <CheckCircle className="w-10 h-10 text-white" strokeWidth={3} />
+                </motion.div>
+              </motion.div>
+              
+              <motion.h3 
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+                className="text-2xl font-extrabold text-[#111827] mb-2 tracking-tight z-10"
+              >
+                Password Reset!
+              </motion.h3>
+              
+              <motion.p 
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+                className="text-sm text-[#64748B] mb-8 font-medium px-2 z-10"
+              >
                 Your password has been successfully reset. You can now log in using your new credentials.
-              </p>
+              </motion.p>
+              
               <button
                 type="button"
                 onClick={() => {
                   setShowResetSuccessModal(false);
                   setAuthMode('login');
+                  setError('');
+                  setFieldErrors({});
                   setOtpStep('email');
                   setOtp(['','','','','','']);
                   setPassword('');
                   setConfirmPassword('');
                 }}
-                className="w-full py-3.5 px-4 bg-[#111827] hover:bg-[#1f2937] active:scale-[0.98] text-white font-bold rounded-xl transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#111827]"
+                className="w-full py-3.5 px-4 bg-[#111827] hover:bg-[#1f2937] active:scale-[0.98] text-white font-bold rounded-xl transition-colors shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#111827] z-10"
               >
                 Continue to Log In
               </button>
@@ -819,26 +927,53 @@ export function LoginPage() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ type: "spring", duration: 0.5, bounce: 0.3 }}
-              className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl flex flex-col items-center text-center"
+              className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-[0_20px_60px_rgba(0,0,0,0.15)] flex flex-col items-center text-center relative overflow-hidden z-10"
             >
-              <div className="w-16 h-16 bg-[#FFFBEB] rounded-full flex items-center justify-center mb-6">
-                <AlertCircle className="w-8 h-8 text-[#F59E0B]" strokeWidth={2.5} />
-              </div>
-              <h3 className="text-xl font-bold text-[#111827] mb-2">Approval Pending</h3>
-              <p className="text-sm text-[#64748B] mb-8 font-medium">
-                Your account is currently pending verification by a Super Admin. You will be able to log in once approved.
-              </p>
+              {/* Decorative background glow */}
+              <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-[#F59E0B]/10 to-transparent pointer-events-none" />
+
+              <motion.div
+                initial={{ scale: 0, rotate: -15 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: "spring", duration: 0.6, bounce: 0.5, delay: 0.1 }}
+                className="w-20 h-20 bg-gradient-to-tr from-[#F59E0B] to-[#FCD34D] rounded-2xl flex items-center justify-center mb-6 shadow-[0_10px_25px_rgba(245,158,11,0.3)] rotate-3 z-10"
+              >
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.3, type: "spring", bounce: 0.6 }}
+                >
+                  <AlertCircle className="w-10 h-10 text-white" strokeWidth={2.5} />
+                </motion.div>
+              </motion.div>
+              
+              <motion.h3 
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+                className="text-2xl font-extrabold text-[#111827] mb-2 tracking-tight z-10"
+              >
+                Approval Pending
+              </motion.h3>
+              
+              <motion.p 
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+                className="text-sm text-[#64748B] mb-8 font-medium px-2 z-10"
+              >
+                Your account is currently pending verification by an Administrator. You will be able to log in once approved.
+              </motion.p>
+              
               <button
                 type="button"
                 onClick={() => {
                   setShowApprovalModal(false);
                   setAuthMode('login');
+                  setError('');
+                  setFieldErrors({});
                   setOtpStep('email');
                   setOtp(['','','','','','']);
                   setPassword('');
                   setConfirmPassword('');
                 }}
-                className="w-full py-3.5 px-4 bg-[#111827] hover:bg-[#1f2937] active:scale-[0.98] text-white font-bold rounded-xl transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#111827]"
+                className="w-full py-3.5 px-4 bg-[#111827] hover:bg-[#1f2937] active:scale-[0.98] text-white font-bold rounded-xl transition-colors shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#111827] z-10"
               >
                 Return to Log In
               </button>
@@ -861,26 +996,53 @@ export function LoginPage() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ type: "spring", duration: 0.5, bounce: 0.3 }}
-              className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl flex flex-col items-center text-center"
+              className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-[0_20px_60px_rgba(0,0,0,0.15)] flex flex-col items-center text-center relative overflow-hidden z-10"
             >
-              <div className="w-16 h-16 bg-[#ECFDF5] rounded-full flex items-center justify-center mb-6">
-                <CheckCircle className="w-8 h-8 text-[#10B981]" strokeWidth={2.5} />
-              </div>
-              <h3 className="text-xl font-bold text-[#111827] mb-2">Registration Successful!</h3>
-              <p className="text-sm text-[#64748B] mb-8 font-medium">
+              {/* Decorative background glow */}
+              <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-[#10B981]/10 to-transparent pointer-events-none" />
+
+              <motion.div
+                initial={{ scale: 0, rotate: -15 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: "spring", duration: 0.6, bounce: 0.5, delay: 0.1 }}
+                className="w-20 h-20 bg-gradient-to-tr from-[#10B981] to-[#34D399] rounded-2xl flex items-center justify-center mb-6 shadow-[0_10px_25px_rgba(16,185,129,0.3)] rotate-3 z-10"
+              >
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.3, type: "spring", bounce: 0.6 }}
+                >
+                  <CheckCircle className="w-10 h-10 text-white" strokeWidth={2.5} />
+                </motion.div>
+              </motion.div>
+              
+              <motion.h3 
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+                className="text-2xl font-extrabold text-[#111827] mb-2 tracking-tight z-10"
+              >
+                Registration Successful!
+              </motion.h3>
+              
+              <motion.p 
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+                className="text-sm text-[#64748B] mb-8 font-medium px-2 z-10"
+              >
                 Your account has been created successfully. You can now log in using your credentials.
-              </p>
+              </motion.p>
+              
               <button
                 type="button"
                 onClick={() => {
                   setShowRegSuccessModal(false);
                   setAuthMode('login');
+                  setError('');
+                  setFieldErrors({});
                   setOtpStep('email');
                   setOtp(['','','','','','']);
                   setPassword('');
                   setConfirmPassword('');
                 }}
-                className="w-full py-3.5 px-4 bg-[#111827] hover:bg-[#1f2937] active:scale-[0.98] text-white font-bold rounded-xl transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#111827]"
+                className="w-full py-3.5 px-4 bg-[#111827] hover:bg-[#1f2937] active:scale-[0.98] text-white font-bold rounded-xl transition-colors shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#111827] z-10"
               >
                 Continue to Log In
               </button>

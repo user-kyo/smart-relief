@@ -1,4 +1,4 @@
-export type UserRole = "SUPER_ADMIN" | "ADMIN" | "VOLUNTEER" | "CITIZEN";
+export type UserRole = "SUPER_ADMIN" | "ADMIN" | "RESPONDER" | "CITIZEN";
 
 export type IncidentSeverity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
 export type IncidentStatus = "REPORTED" | "VERIFIED" | "ASSIGNED" | "RESPONDING" | "RESOLVED" | "CLOSED";
@@ -128,7 +128,7 @@ export interface Responder {
   id: string;
   name: string;
   codeName: string;
-  roleType: "DISASTER_RESPONSE_TEAM" | "PARAMEDIC" | "FIRE_RESCUE" | "VOLUNTEER" | "POLICE_ENFORCEMENT";
+  roleType: "DISASTER_RESPONSE_TEAM" | "PARAMEDIC" | "FIRE_RESCUE" | "RESPONDER" | "POLICE_ENFORCEMENT";
   status: ResponderStatus;
   lguName: string;
   currentAssignmentId?: string;

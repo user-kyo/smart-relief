@@ -27,7 +27,6 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onSelectTab }) 
   const getRoleNavItems = (role: UserRole) => {
     switch (role) {
       case "RESPONDER":
-      case "VOLUNTEER":
         return [
           { id: "field-dashboard", label: "Dashboard", icon: LayoutDashboard },
           { id: "assignments", label: "Tasks", icon: CheckSquare },
