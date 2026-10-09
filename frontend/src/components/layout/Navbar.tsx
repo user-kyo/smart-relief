@@ -28,6 +28,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, onOpenAiModal }
     currentRole,
     setRole,
     currentUser,
+    isGuest,
     alerts,
     systemLogs,
     resetToDefaultData
@@ -226,8 +227,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, onOpenAiModal }
           {/* Profile Section */}
           <div className="flex items-center gap-3">
             <div className="text-right hidden sm:block">
-              <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>{currentUser.name}</p>
-              <p className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>{currentUser.lguName || currentRole.replace('_', ' ')}</p>
+              {isGuest ? (
+                <p className="text-sm font-bold text-amber-600 dark:text-amber-400">Guest Mode</p>
+              ) : (
+                <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>{currentUser.name}</p>
+              )}
+              <p className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>
+                {isGuest ? 'Guest Citizen' : (currentUser.lguName || currentRole.replace('_', ' '))}
+              </p>
             </div>
             
             {currentUser.avatarUrl ? (

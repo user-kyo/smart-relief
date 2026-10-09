@@ -4,20 +4,38 @@ Note: These accounts have been officially seeded into the database.
 You MUST use the exact password below to log in.
 
 [ SUPER ADMIN ]
-Email: sadmin@email.com
+Name: Roberto Mendoza
+Email: roberto.mendoza@gmail.com
 Password: password123
 
 [ ADMIN ]
-Email: admin@email.com
+Name: Elena Santos
+Email: elena.santos@gmail.com
 Password: password123
 
-[ RESPONDER ]
-Email: responder@email.com
+[ RESPONDER 1 ]
+Name: Marcus Villareal
+Email: marcus.villareal@gmail.com
 Password: password123
 
+[ RESPONDER 2 ]
+Name: Theresa Ramos
+Email: theresa.ramos@gmail.com
+Password: password123
 
-[ CITIZEN ]
-Email: citizen@email.com
+[ CITIZEN 1 ]
+Name: Carlos Dalisay
+Email: carlos.dalisay@gmail.com
+Password: password123
+
+[ CITIZEN 2 ]
+Name: Grace Bautista
+Email: grace.bautista@gmail.com
+Password: password123
+
+[ CITIZEN 3 ]
+Name: Arnel Reyes
+Email: arnel.reyes@gmail.com
 Password: password123
 
 -------------------------
@@ -30,4 +48,4 @@ OTP: 123456
 Input any of these in the "Full Name" field during registration OR the "Email Address" field during login (no other fields required) to instantly test success modals or login as the seed account:
 - admintest (it should show the approval pending modal)
 - respondertest (it should show the approval pending modal)
-- citizentest (nothing)
+- citizentest (logs in as Carlos Dalisay)

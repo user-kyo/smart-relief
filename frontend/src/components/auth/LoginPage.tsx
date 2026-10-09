@@ -50,7 +50,7 @@ export function LoginPage() {
 
   const roleOptions = [
     { value: 'CITIZEN', label: 'Citizen' },
-
+    { value: 'RESPONDER', label: 'Responder' },
     { value: 'ADMIN', label: 'Admin' }
   ];
   const selectedRoleLabel = roleOptions.find(opt => opt.value === role)?.label || 'Select Role';
@@ -115,7 +115,7 @@ export function LoginPage() {
         if (lowerEmail === 'admintest' || lowerEmail === 'respondertest') {
           setShowApprovalModal(true);
         } else if (lowerEmail === 'citizentest') {
-          const loginResult = await login('citizen@email.com', 'password123');
+          const loginResult = await login('carlos.dalisay@gmail.com', 'password123');
           if (!loginResult.success) {
             setError(loginResult.message || 'Invalid credentials.');
           }
@@ -280,11 +280,11 @@ export function LoginPage() {
 
       <motion.div
         layout
-        className="bg-white/70 backdrop-blur-2xl border border-white/60 w-full max-w-[440px] rounded-[32px] shadow-[0_8px_40px_rgb(0,0,0,0.08)] p-8 sm:p-12 relative overflow-hidden z-10"
+        className="bg-white/80 backdrop-blur-2xl border border-white/70 w-full max-w-[440px] rounded-2xl sm:rounded-[32px] shadow-[0_8px_40px_rgb(0,0,0,0.08)] p-5 sm:p-10 relative overflow-hidden z-10"
       >
         <div className="flex flex-col items-center">
-          <div className="flex items-center justify-center mb-4 cursor-default">
-            <div className="w-16 h-16 bg-[#111827] rounded-2xl flex items-center justify-center shadow-md text-white shrink-0">
+          <div className="flex items-center justify-center mb-3 sm:mb-4 cursor-default">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 bg-[#111827] rounded-2xl flex items-center justify-center shadow-md text-white shrink-0">
               <Activity className="w-8 h-8" strokeWidth={2.5} />
             </div>
           </div>
@@ -536,8 +536,8 @@ export function LoginPage() {
                 </label>
                 <motion.div 
                   animate={fieldErrors.otp ? { x: [-5, 5, -5, 5, 0 + shakeKey * 0.0001] } : { x: 0 }}
-                  transition={{ duration: 0.4 }}
-                  className="flex justify-center gap-2"
+                  transition={{ duration: 0.4 }} 
+                  className="flex justify-center gap-1.5 sm:gap-2"
                 >
                   {otp.map((digit, index) => (
                     <input
@@ -568,7 +568,7 @@ export function LoginPage() {
                           document.getElementById(`otp-${index - 1}`)?.focus();
                         }
                       }}
-                      className={`w-10 h-12 text-center text-lg font-bold bg-[#F8FAFC] border rounded-xl focus:outline-none focus:ring-2 transition-all ${fieldErrors.otp ? 'border-red-500 text-red-900 focus:ring-red-500/20' : 'border-[#E2E8F0] focus:ring-[#3b82f6]/20 focus:border-[#3b82f6]'}`}
+                      className={`w-9 sm:w-10 h-11 sm:h-12 text-center text-base sm:text-lg font-bold bg-[#F8FAFC] border rounded-xl focus:outline-none focus:ring-2 transition-all ${fieldErrors.otp ? 'border-red-500 text-red-900 focus:ring-red-500/20' : 'border-[#E2E8F0] focus:ring-[#3b82f6]/20 focus:border-[#3b82f6]'}`}
                     />
                   ))}
                 </motion.div>

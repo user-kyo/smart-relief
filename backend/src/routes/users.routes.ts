@@ -54,7 +54,7 @@ router.put("/:id/role", authMiddleware, requireSuperAdmin, async (req: Request, 
     
     res.json({ success: true, user: updatedUser });
   } catch (error: any) {
-    if (error instanceof z.ZodError) return res.status(400).json({ success: false, message: error.errors[0].message });
+    if (error instanceof z.ZodError) return res.status(400).json({ success: false, message: (error as any).issues?.[0]?.message || (error as any).errors?.[0]?.message || error.message });
     console.error(error);
     res.status(500).json({ success: false, message: "Failed to update user role" });
   }
@@ -74,9 +74,28 @@ router.put("/:id/status", authMiddleware, requireSuperAdmin, async (req: Request
     
     res.json({ success: true, user: updatedUser });
   } catch (error: any) {
-    if (error instanceof z.ZodError) return res.status(400).json({ success: false, message: error.errors[0].message });
+    if (error instanceof z.ZodError) return res.status(400).json({ success: false, message: (error as any).issues?.[0]?.message || (error as any).errors?.[0]?.message || error.message });
     console.error(error);
     res.status(500).json({ success: false, message: "Failed to update user status" });
+  }
+});
+
+// Delete user
+router.delete("/:id", authMiddleware, requireSuperAdmin, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    
+    await prisma.user.delete({
+      where: { id }
+    });
+    
+    res.json({ success: true, message: "User deleted successfully" });
+  } catch (error: any) {
+    console.error(error);
+    if (error.code === 'P2025') {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+    res.status(500).json({ success: false, message: "Failed to delete user" });
   }
 });
 

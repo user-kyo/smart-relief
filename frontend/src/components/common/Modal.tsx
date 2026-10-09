@@ -1,4 +1,5 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -19,6 +20,12 @@ export const Modal: React.FC<ModalProps> = ({
   children,
   maxWidth = "lg"
 }) => {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -42,7 +49,9 @@ export const Modal: React.FC<ModalProps> = ({
     "4xl": "max-w-4xl"
   };
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <motion.div
@@ -50,7 +59,7 @@ export const Modal: React.FC<ModalProps> = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6"
         >
           {/* Backdrop */}
           <motion.div 
@@ -93,6 +102,7 @@ export const Modal: React.FC<ModalProps> = ({
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };

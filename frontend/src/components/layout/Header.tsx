@@ -14,7 +14,8 @@ import {
   X,
   Clock,
   Wifi,
-  Plus
+  Plus,
+  LogOut
 } from "lucide-react";
 import { useSmartRelief } from "../../context/SmartReliefContext";
 import { UserRole } from "../../types";
@@ -32,12 +33,15 @@ export const Header: React.FC<HeaderProps> = ({ title, activeTab, onToggleSideba
   const {
     currentRole,
     currentUser,
+    isGuest,
+    users,
     alerts,
     logout
   } = useSmartRelief();
 
   const [showAlertsDropdown, setShowAlertsDropdown] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   // Toggle theme effect
@@ -102,11 +106,10 @@ export const Header: React.FC<HeaderProps> = ({ title, activeTab, onToggleSideba
 
   const formatRoleDisplay = (role: string) => {
     switch (role) {
-      case 'SUPER_ADMIN': return 'National Command';
-      case 'ADMIN': return 'BDRRMC (Manila)';
-      case 'RESPONDER': return 'Field Unit Alpha';
-
-      default: return 'Public Guest';
+      case 'SUPER_ADMIN': return 'System Administrator';
+      case 'ADMIN': return 'LGU Administrator';
+      case 'RESPONDER': return 'Field Responder';
+      default: return 'Citizen';
     }
   };
 
@@ -126,7 +129,7 @@ export const Header: React.FC<HeaderProps> = ({ title, activeTab, onToggleSideba
       case 'overview':
       case 'users':
       case 'roles':
-      case 'analytics':
+      case 'reports':
       case 'audit':
       case 'settings':
         return 'System Administration';
@@ -150,7 +153,7 @@ export const Header: React.FC<HeaderProps> = ({ title, activeTab, onToggleSideba
   };
 
   return (
-    <header className="relative h-[72px] border-b flex items-center justify-between px-4 sm:px-8 shrink-0 z-40 transition-colors backdrop-blur-md bg-white/80 dark:bg-gray-950/80 sticky top-0" style={{ borderColor: 'var(--color-border)' }}>
+    <header className="relative h-[72px] border-b flex items-center justify-between px-4 sm:px-8 shrink-0 z-[100] transition-colors backdrop-blur-md bg-white/80 dark:bg-gray-950/80 sticky top-0" style={{ borderColor: 'var(--color-border)' }}>
       
       {/* LEFT: Context (Title & Breadcrumbs) */}
       <div className="flex items-center gap-4 flex-1">
@@ -171,42 +174,15 @@ export const Header: React.FC<HeaderProps> = ({ title, activeTab, onToggleSideba
         </button>
         
         {/* Page Title & Breadcrumbs */}
-        <div className="hidden sm:flex items-center text-sm font-medium">
-          <span style={{ color: 'var(--color-text-muted)' }}>{getCategoryForTab(activeTab || '')}</span>
-          <ChevronRight className="w-4 h-4 mx-2" style={{ color: 'var(--color-text-faint)' }} />
-          <h1 className="text-base font-bold whitespace-nowrap" style={{ color: 'var(--color-text-primary)' }}>{title}</h1>
+        <div className="flex items-center text-sm font-medium overflow-hidden">
+          <span className="hidden sm:inline" style={{ color: 'var(--color-text-muted)' }}>{getCategoryForTab(activeTab || '')}</span>
+          <ChevronRight className="hidden sm:inline w-4 h-4 mx-2" style={{ color: 'var(--color-text-faint)' }} />
+          <h1 className="text-sm sm:text-base font-bold truncate" style={{ color: 'var(--color-text-primary)' }}>{title}</h1>
         </div>
       </div>
 
-      {/* CENTER: Discovery (Search Bar) */}
-      <div className="hidden lg:flex flex-1 justify-center max-w-md">
-        <div className="flex items-center w-full max-w-sm bg-black/5 dark:bg-white/5 border rounded-xl px-3 py-1.5 transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] focus-within:ring-2 focus-within:ring-blue-500/50 focus-within:max-w-md hover:bg-black/10 dark:hover:bg-white/10 shadow-inner" style={{ borderColor: 'var(--color-border)' }}>
-          <Search className="w-4 h-4 mr-2" style={{ color: 'var(--color-text-muted)' }} />
-          <input
-            type="text"
-            placeholder="Search anything..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="bg-transparent border-none outline-none text-xs font-medium w-full transition-all"
-            style={{ color: 'var(--color-text-primary)' }}
-          />
-          <AnimatePresence>
-            {searchQuery && (
-              <motion.button
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                transition={{ duration: 0.15 }}
-                onClick={() => setSearchQuery("")}
-                className="ml-1 p-1 rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors flex-shrink-0"
-                aria-label="Clear search"
-              >
-                <X className="w-3 h-3" style={{ color: 'var(--color-text-muted)' }} />
-              </motion.button>
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
+      {/* CENTER: Discovery (Search Bar) - Removed */}
+      <div className="hidden lg:flex flex-1 justify-center max-w-md"></div>
       
       {/* RIGHT: Auxiliary, Actions & Profile */}
       <div className="flex items-center justify-end gap-4 sm:gap-6 flex-1">
@@ -220,11 +196,11 @@ export const Header: React.FC<HeaderProps> = ({ title, activeTab, onToggleSideba
             </span>
           </div>
           <div className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-default group relative z-0 hover:z-50">
-            <span className="relative flex h-2.5 w-2.5">
+            <span className="relative flex h-2.5 w-2.5 shrink-0">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
             </span>
-            <span className="text-[10px] font-extrabold tracking-wider uppercase text-emerald-500 dark:text-emerald-400">1,204 Online</span>
+            <span className="text-[10px] font-extrabold tracking-wider uppercase text-emerald-500 dark:text-emerald-400 whitespace-nowrap">{users.filter((u) => u.status === 'ACTIVE').length.toLocaleString()} Online</span>
             <div className="absolute top-full mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[9999] flex flex-col items-center -translate-y-2 group-hover:translate-y-0 pointer-events-none left-1/2 -translate-x-1/2">
               <div className="w-0 h-0 border-x-4 border-x-transparent border-b-4 border-b-[#111827] mb-[-1px]"></div>
               <div className="bg-[#111827] text-white text-xs font-bold px-3 py-1.5 rounded-lg whitespace-nowrap shadow-xl">
@@ -243,6 +219,7 @@ export const Header: React.FC<HeaderProps> = ({ title, activeTab, onToggleSideba
               <button
                 className="hidden sm:flex relative rounded-full p-2 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 group z-0 hover:z-[60]"
                 aria-label="New Incident"
+                onClick={() => window.dispatchEvent(new CustomEvent('open-new-incident-modal'))}
               >
                 <Plus className="w-5 h-5 transition-colors" style={{ color: 'var(--color-text-secondary)' }} />
                 <div className="absolute top-full mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[9999] flex flex-col items-center -translate-y-2 group-hover:translate-y-0 pointer-events-none left-1/2 -translate-x-1/2">
@@ -261,6 +238,7 @@ export const Header: React.FC<HeaderProps> = ({ title, activeTab, onToggleSideba
                 aria-label="Launch AI Support"
               >
                 <Sparkles className="w-5 h-5 transition-colors" style={{ color: 'var(--color-text-secondary)' }} />
+                
                 <div className="absolute top-full mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[9999] flex flex-col items-center -translate-y-2 group-hover:translate-y-0 pointer-events-none left-1/2 -translate-x-1/2">
                   <div className="w-0 h-0 border-x-4 border-x-transparent border-b-4 border-b-[#111827] mb-[-1px]"></div>
                   <div className="bg-[#111827] text-white text-xs font-bold px-3 py-1.5 rounded-lg whitespace-nowrap shadow-xl">
@@ -351,9 +329,13 @@ export const Header: React.FC<HeaderProps> = ({ title, activeTab, onToggleSideba
               className="flex items-center gap-3 p-1 pl-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-left group relative z-0 hover:z-[60]"
             >
               <div className="hidden sm:flex flex-col items-end justify-center pr-1">
-                <p className="text-sm font-bold leading-tight whitespace-nowrap" style={{ color: 'var(--color-text-primary)' }}>{currentUser.name}</p>
+                {isGuest ? (
+                  <span className="text-xs font-bold text-amber-600 dark:text-amber-400 whitespace-nowrap">Guest Mode</span>
+                ) : (
+                  <p className="text-sm font-bold leading-tight whitespace-nowrap" style={{ color: 'var(--color-text-primary)' }}>{currentUser.name}</p>
+                )}
                 <p className="text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 mt-1 bg-blue-500/10 px-1.5 py-0.5 rounded whitespace-nowrap">
-                  {formatRoleDisplay(currentRole)}
+                  {isGuest ? 'Guest Citizen' : formatRoleDisplay(currentRole)}
                 </p>
               </div>
               
@@ -384,12 +366,16 @@ export const Header: React.FC<HeaderProps> = ({ title, activeTab, onToggleSideba
                     open: { opacity: 1, y: 0, scale: 1, transition: { staggerChildren: 0.05, delayChildren: 0.05 } },
                     closed: { opacity: 0, y: 10, scale: 0.95, transition: { staggerChildren: 0.05, staggerDirection: -1 } }
                   }}
-                  className="absolute right-0 mt-2 w-56 p-2 rounded-xl shadow-xl z-50 border origin-top-right backdrop-blur-xl bg-white/90 dark:bg-gray-900/90"
+                  className="absolute right-0 mt-2 w-56 p-2 rounded-xl shadow-xl z-[9999] border origin-top-right backdrop-blur-xl bg-white/90 dark:bg-gray-900/90"
                   style={{ borderColor: 'var(--color-border)' }}
                 >
                   <motion.div variants={{ open: { opacity: 1, x: 0 }, closed: { opacity: 0, x: -10 } }} className="px-3 py-2 border-b" style={{ borderColor: 'var(--color-border)' }}>
-                    <p className="text-xs font-bold" style={{ color: 'var(--color-text-primary)' }}>{currentUser.name}</p>
-                    <p className="text-[10px] font-bold uppercase tracking-wider mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{currentUser.email}</p>
+                  <p className="text-xs font-bold" style={{ color: 'var(--color-text-primary)' }}>
+                    {isGuest ? 'Guest Citizen' : currentUser.name}
+                  </p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
+                    {isGuest ? 'No account — browsing as guest' : currentUser.email}
+                  </p>
                   </motion.div>
                   
                   <motion.div variants={{ open: { opacity: 1, x: 0 }, closed: { opacity: 0, x: -10 } }} className="py-2">
@@ -410,11 +396,12 @@ export const Header: React.FC<HeaderProps> = ({ title, activeTab, onToggleSideba
                   <motion.div variants={{ open: { opacity: 1, x: 0 }, closed: { opacity: 0, x: -10 } }} className="border-t py-2" style={{ borderColor: 'var(--color-border)' }}>
                     <button
                       onClick={() => {
-                        logout();
                         setShowProfileMenu(false);
+                        setShowLogoutModal(true);
                       }}
                       className="w-full text-left px-4 py-2 text-xs font-bold transition-colors text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10 flex items-center gap-2 rounded-lg"
                     >
+                      <LogOut className="w-4 h-4" />
                       Sign Out
                     </button>
                   </motion.div>
@@ -426,7 +413,80 @@ export const Header: React.FC<HeaderProps> = ({ title, activeTab, onToggleSideba
         </div>
       </div>
 
+      {/* Logout Confirmation Modal - Matching Sidebar & Mobile View Modal */}
+      <AnimatePresence>
+        {showLogoutModal && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => setShowLogoutModal(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: "spring", duration: 0.5, bounce: 0.3 }}
+              className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-sm w-full shadow-[0_20px_60px_rgba(0,0,0,0.25)] flex flex-col items-center text-center relative overflow-hidden z-10 border border-slate-100 dark:border-slate-800"
+            >
+              {/* Decorative background glow */}
+              <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-red-500/10 to-transparent pointer-events-none" />
 
+              <motion.div
+                initial={{ scale: 0, rotate: -15 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: "spring", duration: 0.6, bounce: 0.5, delay: 0.1 }}
+                className="w-20 h-20 bg-gradient-to-tr from-red-500 to-rose-400 rounded-2xl flex items-center justify-center mb-6 shadow-[0_10px_25px_rgba(239,68,68,0.3)] rotate-3 z-10"
+              >
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.3, type: "spring", bounce: 0.6 }}
+                >
+                  <LogOut className="w-10 h-10 text-white ml-1" strokeWidth={2.5} />
+                </motion.div>
+              </motion.div>
+              
+              <motion.h3 
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+                className="text-2xl font-extrabold text-slate-900 dark:text-white mb-2 tracking-tight z-10"
+              >
+                Confirm Logout
+              </motion.h3>
+              
+              <motion.p 
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+                className="text-sm text-slate-500 dark:text-slate-400 mb-8 font-medium px-2 z-10 leading-relaxed"
+              >
+                Are you sure you want to sign out of your account? You will need to log back in to access your dashboard.
+              </motion.p>
+              
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+                className="flex gap-3 w-full z-10"
+              >
+                <button
+                  onClick={() => setShowLogoutModal(false)}
+                  className="flex-1 py-3.5 px-4 text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-[0.98] rounded-xl transition-all focus:outline-none"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    setShowLogoutModal(false);
+                    logout();
+                  }}
+                  className="flex-1 py-3.5 px-4 text-sm font-bold text-white bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 active:scale-[0.98] rounded-xl transition-all shadow-md hover:shadow-lg focus:outline-none"
+                >
+                  Log Out
+                </button>
+              </motion.div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </header>
   );
 };

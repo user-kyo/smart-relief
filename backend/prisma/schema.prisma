@@ -240,3 +240,10 @@ model EmergencyAlert {
   issuedBy     String
   active       Boolean  @default(true)
 }
+
+model SystemSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}

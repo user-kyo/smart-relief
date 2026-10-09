@@ -58,7 +58,7 @@ router.post("/check-email", async (req, res) => {
     const existingUser = await prisma.user.findUnique({ where: { email } });
     return res.json({ success: true, exists: !!existingUser });
   } catch (error) {
-    if (error instanceof z.ZodError) return res.status(400).json({ success: false, message: error.errors[0].message });
+    if (error instanceof z.ZodError) return res.status(400).json({ success: false, message: (error as any).issues?.[0]?.message || (error as any).errors?.[0]?.message || (error as any).message });
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
@@ -69,12 +69,35 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
   if (!token) return res.status(401).json({ success: false, message: "Unauthorized" });
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    (req as any).user = decoded;
+    const decoded: any = jwt.verify(token, JWT_SECRET);
+    const resolvedId = decoded.userId || decoded.id;
+    (req as any).user = {
+      ...decoded,
+      id: resolvedId,
+      userId: resolvedId
+    };
     next();
   } catch (err) {
     return res.status(401).json({ success: false, message: "Invalid token" });
   }
+};
+
+export const optionalAuthMiddleware = (req: Request, res: Response, next: NextFunction) => {
+  const token = req.cookies?.token || req.headers.authorization?.split(" ")[1];
+  if (token) {
+    try {
+      const decoded: any = jwt.verify(token, JWT_SECRET);
+      const resolvedId = decoded.userId || decoded.id;
+      (req as any).user = {
+        ...decoded,
+        id: resolvedId,
+        userId: resolvedId
+      };
+    } catch (err) {
+      // Ignore invalid or expired token for optional auth endpoints
+    }
+  }
+  next();
 };
 
 router.get("/me", authMiddleware, async (req: Request, res: Response) => {
@@ -111,7 +134,7 @@ router.post("/register", async (req, res) => {
 
     res.status(201).json({ success: true, user: { id: newUser.id, email: newUser.email, name: newUser.name, role: newUser.role, status: newUser.status } });
   } catch (error: any) {
-    if (error instanceof z.ZodError) return res.status(400).json({ success: false, message: error.errors[0].message });
+    if (error instanceof z.ZodError) return res.status(400).json({ success: false, message: (error as any).issues?.[0]?.message || (error as any).errors?.[0]?.message || error.message });
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
@@ -129,18 +152,18 @@ router.post("/login", async (req, res) => {
 
     if (user.status === "PENDING") return res.status(403).json({ success: false, message: "Your account is pending Super Admin approval." });
 
-    const token = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, { expiresIn: "24h" });
+    const token = jwt.sign({ id: user.id, userId: user.id, role: user.role }, JWT_SECRET, { expiresIn: "24h" });
 
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: "lax",
       maxAge: 24 * 60 * 60 * 1000
     });
 
     res.json({ success: true, token, user: { id: user.id, email: user.email, name: user.name, role: user.role } });
   } catch (error: any) {
-    if (error instanceof z.ZodError) return res.status(400).json({ success: false, message: error.errors[0].message });
+    if (error instanceof z.ZodError) return res.status(400).json({ success: false, message: (error as any).issues?.[0]?.message || (error as any).errors?.[0]?.message || error.message });
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
@@ -252,7 +275,7 @@ router.post("/forgot-password", async (req, res) => {
     res.json({ success: true, message: "OTP sent" });
   } catch (error) {
     console.error("[SMTP ERROR] Failed to send email:", error);
-    if (error instanceof z.ZodError) return res.status(400).json({ success: false, message: error.errors[0].message });
+    if (error instanceof z.ZodError) return res.status(400).json({ success: false, message: (error as any).issues?.[0]?.message || (error as any).errors?.[0]?.message || (error as any).message });
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
@@ -269,7 +292,7 @@ router.post("/verify-otp", (req, res) => {
     }
     res.json({ success: true, message: "OTP verified" });
   } catch (error) {
-    if (error instanceof z.ZodError) return res.status(400).json({ success: false, message: error.errors[0].message });
+    if (error instanceof z.ZodError) return res.status(400).json({ success: false, message: (error as any).issues?.[0]?.message || (error as any).errors?.[0]?.message || (error as any).message });
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
@@ -291,7 +314,7 @@ router.post("/reset-password", async (req, res) => {
     otpStore.delete(email);
     res.json({ success: true, message: "Password updated successfully" });
   } catch (error) {
-    if (error instanceof z.ZodError) return res.status(400).json({ success: false, message: error.errors[0].message });
+    if (error instanceof z.ZodError) return res.status(400).json({ success: false, message: (error as any).issues?.[0]?.message || (error as any).errors?.[0]?.message || (error as any).message });
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
@@ -310,7 +333,7 @@ router.put("/users/:id/status", async (req, res) => {
       return res.json({ success: true, message: "User status mock updated" });
     }
   } catch (error) {
-    if (error instanceof z.ZodError) return res.status(400).json({ success: false, message: error.errors[0].message });
+    if (error instanceof z.ZodError) return res.status(400).json({ success: false, message: (error as any).issues?.[0]?.message || (error as any).errors?.[0]?.message || (error as any).message });
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 });

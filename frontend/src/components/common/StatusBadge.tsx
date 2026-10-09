@@ -14,7 +14,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
   label,
   size = "md"
 }) => {
-  const displayLabel = label || value.replace(/_/g, " ");
+  const displayLabel = label || (value || "").replace(/_/g, " ");
 
   const sizeClasses = {
     sm: "px-2 py-0.5 text-[10px] font-semibold tracking-wide",

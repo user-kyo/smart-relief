@@ -23,6 +23,8 @@ function MainContent() {
   useEffect(() => {
     switch (currentRole) {
       case "SUPER_ADMIN":
+        setActiveTab("users");
+        break;
       case "ADMIN":
         setActiveTab("dashboard");
         break;
@@ -47,41 +49,55 @@ function MainContent() {
       case 'resources': return 'Logistics & Inventory';
       case 'evacuation': return 'Evacuation Shelters';
       case 'responders': return 'Field Responders';
-      case 'lgus': return 'Organizations';
-      case 'overview': return 'Platform Status';
       case 'users': return 'User Management';
       case 'roles': return 'Access Control';
       case 'audit': return 'Audit Logs';
       case 'settings': return 'System Settings';
-      case 'analytics': return 'Analytics & Reports';
-      case 'field-dashboard': return 'Field Dashboard';
-      case 'tactical-map': return 'Tactical Map';
-      case 'assignments': return 'My Assignments';
-      case 'field-report': return 'Submit Field Report';
-      case 'resource-requisition': return 'Resource Requisition';
-      case 'responder-schedule': return 'Available Tasks';
-      case 'citizen-home': return 'Emergency Services';
-      case 'alerts': return 'Public Alerts';
-      case 'report-incident': return 'Report an Incident';
-      case 'request-assistance': return 'Request Assistance';
-      case 'evacuation-centers': return 'Find Shelters';
-      case 'track-requests': return 'Track Requests';
+      case 'reports': return 'Reports';
+      case 'field-dashboard': return 'Tactical Field Terminal';
+      case 'tactical-map': return 'Tactical GIS Map';
+      case 'assignments': return 'Active Missions & Duty Checklist';
+      case 'field-report': return 'Field Situation Report (SitRep)';
+      case 'resource-requisition': return 'Logistics & Requisition';
+      case 'responder-schedule': return 'Shift Schedule & Crew Roster';
+      case 'citizen-home': return 'Citizen Emergency Command';
+      case 'alerts': return 'Live Disaster Alerts & Directives';
+      case 'report-incident': return 'Report Emergency Incident';
+      case 'request-assistance': return 'Request Emergency Assistance';
+      case 'evacuation-centers': return 'Find Evacuation Shelters';
+      case 'track-requests': return 'Track Reports & Requests';
       default: return 'Dashboard';
     }
   };
   const title = getPageTitle(activeTab, currentRole);
 
-  const isMobileRole = currentRole === "RESPONDER" || currentRole === "CITIZEN";
+  const [isMobileScreen, setIsMobileScreen] = useState(() => {
+    if (typeof window !== "undefined") {
+      return window.innerWidth < 1024;
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileScreen(window.innerWidth < 1024);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Use native-styled MobileLayout with BottomNav on mobile/tablet viewports for Citizen & Responder
+  const isMobileRole = isMobileScreen && (currentRole === "CITIZEN" || currentRole === "RESPONDER");
 
   const renderContent = () => (
     <>
       {currentRole === "SUPER_ADMIN" && (
-        ['overview', 'users', 'roles', 'lgus', 'audit', 'settings'].includes(activeTab)
+        ['users', 'roles', 'audit', 'settings', 'reports'].includes(activeTab)
           ? <SuperAdminPortal activeTab={activeTab} />
           : <AdminPortal activeTab={activeTab} onOpenAiModal={() => setIsAiModalOpen(true)} onNavigateTab={setActiveTab} />
       )}
       {currentRole === "ADMIN" && <AdminPortal activeTab={activeTab} onOpenAiModal={() => setIsAiModalOpen(true)} onNavigateTab={setActiveTab} />}
-      {currentRole === "RESPONDER" && <ResponderPortal activeTab={activeTab} />}
+      {currentRole === "RESPONDER" && <ResponderPortal activeTab={activeTab} onSelectTab={tabId => setActiveTab(tabId)} />}
       {currentRole === "CITIZEN" && <CitizenPortal activeTab={activeTab} onSelectTab={tabId => setActiveTab(tabId)} />}
     </>
   );
@@ -125,7 +141,7 @@ function MainContent() {
               onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
               onCloseSidebar={() => setIsSidebarOpen(false)}
               onOpenAiModal={() => setIsAiModalOpen(true)}
-              contentClassName={activeTab === 'map' ? "h-full w-full" : "max-w-[1500px] mx-auto w-full"}
+              contentClassName={activeTab === 'map' ? "h-full w-full" : "max-w-[1500px] mx-auto w-full h-full flex flex-col"}
             >
               {renderContent()}
             </PageLayout>

@@ -166,6 +166,11 @@ export interface SystemLog {
   details: string;
   ipAddress: string;
   severity: "INFO" | "WARNING" | "CRITICAL" | "SECURITY";
+  changes?: {
+    field: string;
+    oldValue: any;
+    newValue: any;
+  }[];
 }
 
 export interface RolePermission {

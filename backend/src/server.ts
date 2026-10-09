@@ -7,30 +7,46 @@ import dotenv from "dotenv";
 import { z } from "zod";
 import authRoutes from "./routes/auth.routes";
 import usersRoutes from "./routes/users.routes";
+import settingsRoutes from "./routes/settings.routes";
+import analyticsRoutes from "./routes/analytics.routes";
+import permissionsRoutes from "./routes/permissions.routes";
+import incidentsRoutes from "./routes/incidents.routes";
+import respondersRoutes from "./routes/responders.routes";
+import requestsRoutes from "./routes/requests.routes";
+import resourcesRoutes from "./routes/resources.routes";
+import evacuationRoutes from "./routes/evacuation.routes";
+import logsRoutes from "./routes/logs.routes";
 
 dotenv.config();
 
-async function startServer() {
-  const app = express();
-  const PORT = 3000;
+export const app = express();
+const PORT = 3000;
 
-  app.use(cors({ origin: "http://localhost:5173", credentials: true }));
-  app.use(cookieParser());
-  app.use(express.json({ limit: "10mb" }));
+app.use(cors({
+  origin: (_origin, callback) => {
+    // Allow any local network origin (localhost, 10.x.x.x, 192.168.x.x, USB tethering)
+    callback(null, true);
+  },
+  credentials: true
+}));
+app.use(cookieParser());
+app.use(express.json({ limit: "10mb" }));
 
-  // Initialize Gemini AI client if API key exists
-  const apiKey = process.env.GEMINI_API_KEY;
-  let ai: GoogleGenAI | null = null;
-  if (apiKey) {
-    ai = new GoogleGenAI({
-      apiKey,
-      httpOptions: {
-        headers: {
-          "User-Agent": "aistudio-build",
-        },
+// Initialize Gemini AI client if API key exists
+const apiKey = process.env.GEMINI_API_KEY;
+export let ai: GoogleGenAI | null = null;
+export const setAIClient = (client: any) => { ai = client; };
+if (apiKey) {
+  ai = new GoogleGenAI({
+    apiKey,
+    httpOptions: {
+      headers: {
+        "User-Agent": "aistudio-build",
       },
-    });
-  }
+    },
+  });
+}
+
 
   // Health Check
   app.get("/api/health", (_req, res) => {
@@ -40,46 +56,87 @@ async function startServer() {
   // Auth Routes
   app.use("/api/auth", authRoutes);
   app.use("/api/users", usersRoutes);
+  app.use("/api/settings", settingsRoutes);
+  app.use("/api/analytics", analyticsRoutes);
+  app.use("/api/permissions", permissionsRoutes);
+  app.use("/api/incidents", incidentsRoutes);
+  app.use("/api/responders", respondersRoutes);
+  app.use("/api/requests", requestsRoutes);
+  app.use("/api/resources", resourcesRoutes);
+  app.use("/api/evacuation", evacuationRoutes);
+  app.use("/api/logs", logsRoutes);
 
 
-  const decisionSupportSchema = z.object({
-    incidentContext: z.array(z.any()).optional(),
-    resourceContext: z.array(z.any()).optional(),
-    prompt: z.string().optional()
-  });
+export const decisionSupportSchema = z.object({
+  incidentContext: z.array(z.any()).optional(),
+  resourceContext: z.array(z.any()).optional(),
+  prompt: z.string().optional()
+});
 
-  // AI Decision Support Endpoint
-  app.post("/api/ai/decision-support", async (req, res) => {
-    try {
-      const { incidentContext, resourceContext, prompt } = decisionSupportSchema.parse(req.body);
+// AI Decision Support Endpoint
+app.post("/api/ai/decision-support", async (req, res) => {
+  try {
+    const { incidentContext, resourceContext, prompt } = decisionSupportSchema.parse(req.body);
 
       if (!ai) {
+        // Generate dynamic heuristic recommendations based on real context if AI is not configured
+        const recommendations = [];
+        
+        // Find most critical unassigned incident
+        const criticalIncident = (incidentContext || []).find((i: any) => 
+          (i.severity === "CRITICAL" || i.severity === "HIGH") && i.status !== "RESOLVED"
+        );
+        
+        if (criticalIncident) {
+          recommendations.push({
+            id: `rec-fallback-${Date.now()}-1`,
+            title: `Priority Dispatch: ${criticalIncident.title}`,
+            severity: criticalIncident.severity,
+            reasoning: `${criticalIncident.affectedCount || 'Multiple'} individuals affected near ${criticalIncident.locationName || 'the reported area'}. Immediate response required based on severity level.`,
+            recommendedAction: `Dispatch nearest available emergency response team to ${criticalIncident.locationName || 'incident zone'}.`,
+            impactScore: criticalIncident.severity === "CRITICAL" ? 95 : 85,
+            category: "DISPATCH",
+            targetId: criticalIncident.id
+          });
+        }
+        
+        // Find most depleted resource
+        const lowResource = (resourceContext || []).find((r: any) => 
+          r.stockStatus === "LOW_STOCK" || r.stockStatus === "CRITICAL" || (r.availableQuantity < r.minThreshold)
+        );
+        
+        if (lowResource) {
+          recommendations.push({
+            id: `rec-fallback-${Date.now()}-2`,
+            title: `Resource Reallocation: ${lowResource.name}`,
+            severity: "HIGH",
+            reasoning: `Inventory for ${lowResource.name} is dangerously low (${lowResource.availableQuantity} ${lowResource.unit} remaining). Depletion expected soon.`,
+            recommendedAction: `Initiate emergency transfer of 50+ ${lowResource.unit} of ${lowResource.name} to the active staging area.`,
+            impactScore: 88,
+            category: "RESOURCE_ALLOCATION",
+            targetId: "EC-001" // Defaulting to central hub or evac center
+          });
+        }
+        
+        // If nothing critical, show a generic monitoring rec
+        if (recommendations.length === 0) {
+          recommendations.push({
+            id: `rec-fallback-${Date.now()}-3`,
+            title: "Routine Patrol & Monitoring",
+            severity: "LOW",
+            reasoning: "No critical incidents or supply shortages detected in the current operating picture.",
+            recommendedAction: "Maintain standard alert level and continue routine data collection.",
+            impactScore: 40,
+            category: "ALERT",
+            targetId: "SYSTEM"
+          });
+        }
+
         return res.json({
           success: true,
           source: "heuristic",
-          recommendations: [
-            {
-              id: `rec-fallback-1`,
-              title: "Priority Evacuation Dispatch: Sector 4 Flood",
-              severity: "CRITICAL",
-              reasoning: "18 residents reported trapped in rising water near Sector 4. Water level rising at 0.3m/hr. Two rescue boats available within 2.5km.",
-              recommendedAction: "Dispatch Rescue Team Alpha with 2 inflatable motorboats and 20 life vests to Barangay San Jose Sector 4.",
-              impactScore: 94,
-              category: "DISPATCH",
-              targetId: "INC-2026-089"
-            },
-            {
-              id: `rec-fallback-2`,
-              title: "Resource Transfer: Water Purification Units",
-              severity: "HIGH",
-              reasoning: "Evacuation Center Central Gym is operating at 88% capacity (440 occupants). Clean water supply projected to deplete in 3.5 hours.",
-              recommendedAction: "Reallocate 150 water purification tablet kits and 20 water tanks from Metro Warehouse Depot to Central Gym Evacuation Center.",
-              impactScore: 88,
-              category: "RESOURCE_ALLOCATION",
-              targetId: "EC-001"
-            }
-          ],
-          aiAnalysis: "Simulated AI decision model analyzed 14 active incidents and 6 evacuation centers. Primary threat remains flash flooding in lower elevation barangays."
+          recommendations,
+          aiAnalysis: `Analyzed ${incidentContext?.length || 0} active incidents and ${resourceContext?.length || 0} resource assets using local heuristics.`
         });
       }
 
@@ -127,7 +184,7 @@ Custom Focus Prompt: ${prompt || "Analyze all active critical incidents and sugg
         ...parsed
       });
     } catch (error: any) {
-      if (error instanceof z.ZodError) return res.status(400).json({ success: false, message: error.errors[0].message });
+      if (error instanceof z.ZodError) return res.status(400).json({ success: false, message: (error as any).issues?.[0]?.message || (error as any).errors?.[0]?.message || error.message });
       console.error("AI Decision Support Error:", error);
       return res.status(500).json({
         success: false,
@@ -169,7 +226,7 @@ User Question: ${userQuery}`,
         answer: response.text
       });
     } catch (error: any) {
-      if (error instanceof z.ZodError) return res.status(400).json({ success: false, message: error.errors[0].message });
+      if (error instanceof z.ZodError) return res.status(400).json({ success: false, message: (error as any).issues?.[0]?.message || (error as any).errors?.[0]?.message || error.message });
       console.error("AI Query Error:", error);
       return res.status(500).json({
         success: false,
@@ -178,18 +235,17 @@ User Question: ${userQuery}`,
     }
   });
 
-  // Serve static files in production
-  if (process.env.NODE_ENV === "production") {
-    const distPath = path.join(process.cwd(), "../frontend/dist");
-    app.use(express.static(distPath));
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
-    });
-  }
+// Serve static files in production
+if (process.env.NODE_ENV === "production") {
+  const distPath = path.join(process.cwd(), "../frontend/dist");
+  app.use(express.static(distPath));
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(distPath, "index.html"));
+  });
+}
 
+if (process.env.NODE_ENV !== "test") {
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`SmartRelief Server running on http://localhost:${PORT}`);
   });
 }
-
-startServer();

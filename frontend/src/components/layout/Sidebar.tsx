@@ -46,7 +46,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isOpen,
   onClose
 }) => {
-  const { currentRole, currentUser, incidents, assistanceRequests, resources, aiRecommendations, logout } = useSmartRelief();
+  const { currentRole, currentUser, incidents, assistanceRequests, resources, alerts, aiRecommendations, logout } = useSmartRelief();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isRetracted, setIsRetracted] = useState(() => {
     try {
@@ -90,13 +90,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
           { id: "resources", label: "Logistics & Inventory", icon: Boxes, badge: lowStockResources > 0 ? lowStockResources : undefined, badgeColor: "orange" },
           { id: "evacuation", label: "Evacuation Shelters", icon: Home },
           { id: "responders", label: "Field Responders", icon: Users2 },
-          { id: "lgus", label: "Organizations", icon: Building2 },
 
           { id: "div-sys", label: "System Administration", isHeader: true, icon: LayoutDashboard },
-          { id: "overview", label: "Platform Status", icon: Settings },
           { id: "users", label: "Users", icon: Users },
           { id: "roles", label: "Access Control", icon: ShieldCheck },
-          { id: "analytics", label: "Analytics", icon: BarChart3 },
+          { id: "reports", label: "Reports", icon: FileText },
           { id: "audit", label: "Audit Trail", icon: Activity },
           { id: "settings", label: "Settings", icon: Settings }
         ];
@@ -116,7 +114,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           { id: "responders", label: "Field Responders", icon: Users2 },
 
           { id: "div-sys", label: "System Administration", isHeader: true, icon: LayoutDashboard },
-          { id: "analytics", label: "Analytics", icon: BarChart3 }
+          { id: "reports", label: "Reports", icon: FileText }
         ];
 
       case "RESPONDER":
@@ -130,15 +128,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
         ];
 
       case "CITIZEN":
-      default:
+      default: {
+        const activeAlertCount = alerts.filter(a => a.active).length;
         return [
           { id: "citizen-home", label: "Home", icon: Siren },
-          { id: "alerts", label: "Live Alerts", icon: Bell },
+          { id: "alerts", label: "Live Alerts", icon: Bell, badge: activeAlertCount > 0 ? activeAlertCount : undefined, badgeColor: "red" },
           { id: "report-incident", label: "Report Emergency", icon: AlertOctagon },
           { id: "request-assistance", label: "Request Help", icon: LifeBuoy },
           { id: "evacuation-centers", label: "Find Shelter", icon: Search },
-          { id: "track-requests", label: "My Requests", icon: Clock }
+          { id: "track-requests", label: "My Requests", icon: Clock, badge: (pendingRequests + pendingIncidents) > 0 ? (pendingRequests + pendingIncidents) : undefined, badgeColor: "blue" }
         ];
+      }
     }
   };
 
